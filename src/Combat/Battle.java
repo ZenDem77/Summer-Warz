@@ -1,0 +1,130 @@
+package Combat;
+
+import Entities.Entity;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Battle {
+
+    public enum BattleState { IDLE, APPROACHING, ONGOING, PLAYER_WIN, ENEMY_WIN }
+
+    public interface BattleListener {
+        void onPlayerAttack(String logEntry, int damage, boolean isCrit);
+        void onEnemyAttack(String logEntry, int damage, boolean isCrit);
+        void onPassive(String logEntry, boolean isHeal);
+        void onBattleEnd(BattleState result);
+    }
+
+    private final Entity player;
+    private final Entity enemy;
+    private BattleState state = BattleState.IDLE;
+
+    private final List<BattleListener> listeners = new ArrayList<>();
+
+    // Passive timers (managed here so Battle owns the lifecycle)
+    private javax.swing.Timer playerPassiveTimer;
+    private javax.swing.Timer enemyPassiveTimer;
+
+    public Battle(Entity player, Entity enemy) {
+        this.player = player;
+        this.enemy  = enemy;
+    }
+
+    public void addListener(BattleListener l) { listeners.add(l); }
+
+    public void start() {
+        player.reset();
+        enemy.reset();
+        state = BattleState.APPROACHING;
+    }
+
+    public void setEngaged() {
+        if (state != BattleState.APPROACHING) return;
+        state = BattleState.ONGOING;
+        startPassiveTimers();
+    }
+
+    public void stop() {
+        if (playerPassiveTimer != null) playerPassiveTimer.stop();
+        if (enemyPassiveTimer  != null) enemyPassiveTimer.stop();
+    }
+
+    // ── Attack ticks ──────────────────────────────────────────────────────────
+
+    public void playerTick() {
+        if (state != BattleState.ONGOING) return;
+        DamageResult result = player.calculateDamage(enemy);
+        enemy.takeDamage(result.amount);
+        String log = (result.isCrit ? "★ CRIT! " : "")
+                + player.getName() + " hits " + enemy.getName()
+                + " for " + result.amount + " dmg! ("
+                + enemy.getCurrentHp() + "/" + enemy.getMaxHp() + " HP)";
+        for (BattleListener l : listeners) l.onPlayerAttack(log, result.amount, result.isCrit);
+        checkEnd();
+    }
+
+    public void enemyTick() {
+        if (state != BattleState.ONGOING) return;
+        DamageResult result = enemy.calculateDamage(player);
+        player.takeDamage(result.amount);
+        String log = (result.isCrit ? "★ CRIT! " : "")
+                + enemy.getName() + " hits " + player.getName()
+                + " for " + result.amount + " dmg! ("
+                + player.getCurrentHp() + "/" + player.getMaxHp() + " HP)";
+        for (BattleListener l : listeners) l.onEnemyAttack(log, result.amount, result.isCrit);
+        checkEnd();
+    }
+
+    // ── Passive support ───────────────────────────────────────────────────────
+
+    private void startPassiveTimers() {
+        Passive pp = player.getPassive();
+        if (pp != null) {
+            playerPassiveTimer = new javax.swing.Timer(pp.getIntervalMs(),
+                    e -> pp.trigger(player, this));
+            playerPassiveTimer.start();
+        }
+
+        Passive ep = enemy.getPassive();
+        if (ep != null) {
+            enemyPassiveTimer = new javax.swing.Timer(ep.getIntervalMs(),
+                    e -> ep.trigger(enemy, this));
+            enemyPassiveTimer.start();
+        }
+    }
+
+    /** Called by Passive implementations to broadcast a passive event. */
+    public void notifyPassive(Entity owner, Entity target, String passiveName,
+                              String effectDesc, boolean isHeal) {
+        String log = "[" + passiveName + "] " + owner.getName() + " — " + effectDesc
+                + " (" + target.getName() + ": "
+                + target.getCurrentHp() + "/" + target.getMaxHp() + " HP)";
+        for (BattleListener l : listeners) l.onPassive(log, isHeal);
+    }
+
+    /** Exposed so Passive implementations can trigger win-check after dealing damage. */
+    public void checkEndPublic() { checkEnd(); }
+
+    private void checkEnd() {
+        if (!enemy.isAlive()) {
+            state = BattleState.PLAYER_WIN;
+            stop();
+            for (BattleListener l : listeners) l.onBattleEnd(state);
+        } else if (!player.isAlive()) {
+            state = BattleState.ENEMY_WIN;
+            stop();
+            for (BattleListener l : listeners) l.onBattleEnd(state);
+        }
+    }
+
+    public BattleState getState() { return state; }
+    public Entity getPlayer()     { return player; }
+    public Entity getEnemy()      { return enemy; }
+}
