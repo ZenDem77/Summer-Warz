@@ -19,6 +19,16 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.geom.RoundRectangle2D;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.geom.RoundRectangle2D;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.geom.RoundRectangle2D;
+
 /**
  * BattlePanel — Swing GUI for Ninja Warz 1v1 combat.
  *
@@ -86,6 +96,10 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     private javax.swing.Timer enemyDmgTimer;
     private boolean playerDmgIsCrit = false;
     private boolean enemyDmgIsCrit  = false;
+    private boolean playerDmgIsHeal    = false;
+    private boolean enemyDmgIsHeal     = false;
+    private boolean playerDmgIsPassive = false;
+    private boolean enemyDmgIsPassive  = false;
 
     // ── Arena canvas ──────────────────────────────────────────────────────────
     private final ArenaCanvas arena;
@@ -219,6 +233,10 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         enemyDmgText    = null;
         playerDmgIsCrit = false;
         enemyDmgIsCrit  = false;
+        playerDmgIsHeal    = false;
+        enemyDmgIsHeal     = false;
+        playerDmgIsPassive = false;
+        enemyDmgIsPassive  = false;
         resetPositions();
         refreshHpBars();
         arena.repaint();
@@ -316,11 +334,16 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     @Override
-    public void onPassive(String logEntry, boolean isHeal) {
+    public void onPassive(String logEntry, Entity owner, int amount, boolean isHeal) {
         SwingUtilities.invokeLater(() -> {
             appendLog(logEntry);
+            // Damage passive: popup on the opponent of the owner
+            // Heal passive:   popup on the owner themselves
+            boolean onPlayer = isHeal
+                    ? (owner == battle.getPlayer())
+                    : (owner != battle.getPlayer());
+            showPassivePopup(onPlayer, amount, isHeal);
             refreshHpBars();
-            arena.repaint();
         });
     }
 
@@ -372,7 +395,9 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         if (onPlayer) {
             playerDmgText   = "-" + dmg + (isCrit ? "!!" : "");
             playerDmgAlpha  = 255;
-            playerDmgIsCrit = isCrit;
+            playerDmgIsCrit    = isCrit;
+            playerDmgIsHeal    = false;
+            playerDmgIsPassive = false;
             if (playerDmgTimer != null) playerDmgTimer.stop();
             playerDmgTimer = new javax.swing.Timer(30, ev -> {
                 playerDmgAlpha -= 18;
@@ -381,9 +406,42 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
             });
             playerDmgTimer.start();
         } else {
-            enemyDmgText   = "-" + dmg + (isCrit ? "!!" : "");
+            enemyDmgText   = "-" + dmg + (isCrit ? "!" : "");
             enemyDmgAlpha  = 255;
-            enemyDmgIsCrit = isCrit;
+            enemyDmgIsCrit    = isCrit;
+            enemyDmgIsHeal    = false;
+            enemyDmgIsPassive = false;
+            if (enemyDmgTimer != null) enemyDmgTimer.stop();
+            enemyDmgTimer = new javax.swing.Timer(30, ev -> {
+                enemyDmgAlpha -= 18;
+                if (enemyDmgAlpha <= 0) { enemyDmgAlpha = 0; enemyDmgText = null; enemyDmgTimer.stop(); }
+                arena.repaint();
+            });
+            enemyDmgTimer.start();
+        }
+    }
+
+    private void showPassivePopup(boolean onPlayer, int amount, boolean isHeal) {
+        String text = (isHeal ? "+" : "-") + amount;
+        if (onPlayer) {
+            playerDmgText   = text;
+            playerDmgAlpha  = 255;
+            playerDmgIsCrit    = false;
+            playerDmgIsHeal    = isHeal;
+            playerDmgIsPassive = !isHeal;
+            if (playerDmgTimer != null) playerDmgTimer.stop();
+            playerDmgTimer = new javax.swing.Timer(30, ev -> {
+                playerDmgAlpha -= 18;
+                if (playerDmgAlpha <= 0) { playerDmgAlpha = 0; playerDmgText = null; playerDmgTimer.stop(); }
+                arena.repaint();
+            });
+            playerDmgTimer.start();
+        } else {
+            enemyDmgText   = text;
+            enemyDmgAlpha  = 255;
+            enemyDmgIsCrit    = false;
+            enemyDmgIsHeal    = isHeal;
+            enemyDmgIsPassive = !isHeal;
             if (enemyDmgTimer != null) enemyDmgTimer.stop();
             enemyDmgTimer = new javax.swing.Timer(30, ev -> {
                 enemyDmgAlpha -= 18;
@@ -517,10 +575,22 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
             // ── Damage popups ─────────────────────────────────────────────────
             if (playerDmgText != null) {
-                drawDamageText(g2, playerDmgText, px + FIGHTER_SIZE / 2, py - 20, playerDmgAlpha, playerDmgIsCrit);
+                if (playerDmgIsHeal) {
+                    // Heal: beside the entity (to the left for the player)
+                    drawDamageText(g2, playerDmgText, px - 8, py + FIGHTER_SIZE / 2, playerDmgAlpha, playerDmgIsCrit, true, playerDmgIsPassive, true);
+                } else {
+                    // Damage: above, centered
+                    drawDamageText(g2, playerDmgText, px + FIGHTER_SIZE / 2, py - 20, playerDmgAlpha, playerDmgIsCrit, false, playerDmgIsPassive, false);
+                }
             }
             if (enemyDmgText != null) {
-                drawDamageText(g2, enemyDmgText, ex + FIGHTER_SIZE / 2, ey - 20, enemyDmgAlpha, enemyDmgIsCrit);
+                if (enemyDmgIsHeal) {
+                    // Heal: beside the entity to the right (enemy is on the right side)
+                    drawDamageText(g2, enemyDmgText, ex + FIGHTER_SIZE + 8, ey + FIGHTER_SIZE / 2, enemyDmgAlpha, enemyDmgIsCrit, true, enemyDmgIsPassive, true);
+                } else {
+                    // Damage: above, centered
+                    drawDamageText(g2, enemyDmgText, ex + FIGHTER_SIZE / 2, ey - 20, enemyDmgAlpha, enemyDmgIsCrit, false, enemyDmgIsPassive, false);
+                }
             }
 
             // ── Dead X overlay ────────────────────────────────────────────────
@@ -540,14 +610,20 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
             g2.drawString(text, cx - tw / 2, y);
         }
 
-        private void drawDamageText(Graphics2D g2, String text, int cx, int y, int alpha, boolean isCrit) {
+        private void drawDamageText(Graphics2D g2, String text, int x, int y, int alpha,
+                                    boolean isCrit, boolean isHeal, boolean isPassiveDmg,
+                                    boolean leftAnchored) {
             float size = isCrit ? 17f : 14f;
             g2.setFont(g2.getFont().deriveFont(Font.BOLD, size));
             FontMetrics fm = g2.getFontMetrics();
             int tw = fm.stringWidth(text);
-            Color c = isCrit ? new Color(255, 210, 0, alpha) : new Color(255, 80, 80, alpha);
+            Color c = isHeal        ? new Color(80, 220, 80, alpha)    // green  — heal
+                    : isPassiveDmg  ? new Color(80, 140, 255, alpha)   // blue   — passive damage
+                    : isCrit        ? new Color(255, 210, 0, alpha)     // gold   — crit
+                    :                 new Color(255, 80, 80, alpha);    // red    — normal hit
             g2.setColor(c);
-            g2.drawString(text, cx - tw / 2, y);
+            int drawX = leftAnchored ? x : x - tw / 2;
+            g2.drawString(text, drawX, y);
         }
 
         private void drawDeadX(Graphics2D g2, int x, int y) {

@@ -29,7 +29,7 @@ public class Phainon extends Enemy {
         return new Passive() {
             @Override public int    getIntervalMs() { return PASSIVE_INTERVAL_MS; }
             @Override public String getName()       { return "Ember Mend"; }
-            @Override public String getDescription() { return "Recover 20 HP every 7 seconds"; }
+            @Override public String getDescription() { return "Recover " + PASSIVE_HEAL_AMOUNT + " HP every 7s"; }
 
             @Override
             public void trigger(Entity owner, Battle battle) {
@@ -37,7 +37,7 @@ public class Phainon extends Enemy {
                 owner.heal(PASSIVE_HEAL_AMOUNT);
                 int healed = owner.getCurrentHp() - before;
                 battle.notifyPassive(owner, owner, getName(),
-                        "+" + healed + " HP restored", true);
+                        "+" + healed + " HP restored", healed, true);
             }
         };
     }
