@@ -1,6 +1,11 @@
 package Combat;
 
-import Entities.*;
+import Combat.NormalBattle.Battle;
+import Combat.NormalBattle.BattlePanel;
+import Entities.Character;
+import Entities.Characters.*;
+import Entities.Enemies.*;
+import GameMain.GamePanel;
 
 import javax.swing.*;
 
@@ -8,16 +13,13 @@ public class BattleMain {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            Zed zed    = new Zed();
-            Phainon phainon = new Phainon();
-            Battle battle  = new Battle(zed, phainon);
+            GamePanel window = new GamePanel();
 
-            JFrame frame = new JFrame("Summer Warz – Battle");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.getContentPane().add(new BattlePanel(battle));
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
+            Character testCharacter = new Zed();
+
+            Battle battle  = new Battle(testCharacter, new Phainon());
+
+            window.showPanel(new BattlePanel(battle));
         });
     }
 }

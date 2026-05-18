@@ -1,4 +1,4 @@
-package Combat;
+package Combat.NormalBattle;
 
 import Entities.Entity;
 import Entities.Enemy;
@@ -7,27 +7,6 @@ import Entities.Character;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.geom.RoundRectangle2D;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.geom.RoundRectangle2D;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.geom.RoundRectangle2D;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.geom.RoundRectangle2D;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.geom.RoundRectangle2D;
 
 /**
  * BattlePanel — Swing GUI for Ninja Warz 1v1 combat.
@@ -87,22 +66,67 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     private javax.swing.Timer playerFlashTimer;
     private javax.swing.Timer enemyFlashTimer;
 
-    // damage popup
-    private String  playerDmgText = null;
-    private String  enemyDmgText  = null;
-    private int     playerDmgAlpha = 0;
-    private int     enemyDmgAlpha  = 0;
-    private javax.swing.Timer playerDmgTimer;
-    private javax.swing.Timer enemyDmgTimer;
-    private boolean playerDmgIsCrit = false;
-    private boolean enemyDmgIsCrit  = false;
-    private boolean playerDmgIsHeal    = false;
-    private boolean enemyDmgIsHeal     = false;
-    private boolean playerDmgIsPassive = false;
-    private boolean enemyDmgIsPassive  = false;
+    // ── Floating text popups ─────────────────────────────────────────────────
+    // Each popup is independent — new hits never kill existing ones.
+    private final java.util.List<FloatingText> floatingTexts = new java.util.ArrayList<>();
+    private javax.swing.Timer floatTimer;   // single shared tick for all popups
+
+    // ── FloatingText: one independent damage/heal number ─────────────────────
+    private static class FloatingText {
+        static final int DURATION_MS   = 500;   // total lifetime
+        static final int TICK_MS       = 16;    // ~60 fps
+        static final int RISE_PX       = 30;    // total upward travel in pixels
+        static final int SIDE_OFFSET   = 8;     // horizontal offset for side-anchored (heals)
+
+        String  text;
+        float   x, y;           // current draw position
+        int     alpha;          // 0–255
+        boolean isCrit;
+        boolean isHeal;
+        boolean isPassiveDmg;
+        boolean isMiss;
+        boolean leftAnchored;   // true for enemy-side heals (text flows right)
+
+        // ticks remaining and per-tick deltas
+        int   ticksLeft;
+        float dy;               // pixels to rise per tick
+        int   dAlpha;           // alpha to subtract per tick
+
+        FloatingText(String text, float x, float y,
+                     boolean isCrit, boolean isHeal, boolean isPassiveDmg,
+                     boolean isMiss, boolean leftAnchored) {
+            this.text         = text;
+            this.x            = x;
+            this.y            = y;
+            this.alpha        = 255;
+            this.isCrit       = isCrit;
+            this.isHeal       = isHeal;
+            this.isPassiveDmg = isPassiveDmg;
+            this.isMiss       = isMiss;
+            this.leftAnchored = leftAnchored;
+
+            int totalTicks = DURATION_MS / TICK_MS;
+            this.ticksLeft  = totalTicks;
+            this.dy         = (float) RISE_PX / totalTicks;
+            this.dAlpha     = 255 / totalTicks;
+        }
+
+        /** Advance one tick. Returns false when this popup should be removed. */
+        boolean tick() {
+            y       -= dy;
+            alpha   -= dAlpha;
+            ticksLeft--;
+            return alpha > 0 && ticksLeft > 0;
+        }
+    }
 
     // ── Arena canvas ──────────────────────────────────────────────────────────
     private final ArenaCanvas arena;
+
+    // ── End-of-battle overlay ─────────────────────────────────────────────────
+    private Battle.BattleState battleResult = null;   // null = no overlay
+    private int  overlayAlpha  = 0;                   // 0–180 (semi-transparent)
+    private javax.swing.Timer overlayFadeTimer;
 
     // ── UI widgets ────────────────────────────────────────────────────────────
     private JProgressBar playerHpBar, enemyHpBar;
@@ -229,14 +253,9 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         statusLabel.setText("Press Start to begin.");
         playerFlashing = false;
         enemyFlashing  = false;
-        playerDmgText   = null;
-        enemyDmgText    = null;
-        playerDmgIsCrit = false;
-        enemyDmgIsCrit  = false;
-        playerDmgIsHeal    = false;
-        enemyDmgIsHeal     = false;
-        playerDmgIsPassive = false;
-        enemyDmgIsPassive  = false;
+        floatingTexts.clear();
+        battleResult = null;
+        overlayAlpha = 0;
         resetPositions();
         refreshHpBars();
         arena.repaint();
@@ -314,21 +333,29 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     // ── Battle.BattleListener ─────────────────────────────────────────────────
 
     @Override
-    public void onPlayerAttack(String logEntry, int damage, boolean isCrit) {
+    public void onPlayerAttack(String logEntry, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
             appendLog(logEntry);
-            flashEnemy();
-            showDamagePopup(false, damage, isCrit);
+            if (isMiss) {
+                spawnMissPopup(false);
+            } else {
+                flashEnemy();
+                showDamageDisplay(false, damage, isCrit);
+            }
             refreshHpBars();
         });
     }
 
     @Override
-    public void onEnemyAttack(String logEntry, int damage, boolean isCrit) {
+    public void onEnemyAttack(String logEntry, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
             appendLog(logEntry);
-            flashPlayer();
-            showDamagePopup(true, damage, isCrit);
+            if (isMiss) {
+                spawnMissPopup(true);
+            } else {
+                flashPlayer();
+                showDamageDisplay(true, damage, isCrit);
+            }
             refreshHpBars();
         });
     }
@@ -359,7 +386,19 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
             appendLog("=== " + msg + " ===");
             statusLabel.setText(msg);
             refreshHpBars();
-            arena.repaint();
+
+            // Brief pause, then fade in the result overlay
+            new javax.swing.Timer(400, e -> {
+                ((javax.swing.Timer) e.getSource()).stop();
+                battleResult = result;
+                overlayAlpha = 0;
+                overlayFadeTimer = new javax.swing.Timer(16, ev -> {
+                    overlayAlpha = Math.min(overlayAlpha + 8, 180);
+                    arena.repaint();
+                    if (overlayAlpha >= 180) overlayFadeTimer.stop();
+                });
+                overlayFadeTimer.start();
+            }) {{ setRepeats(false); start(); }};
         });
     }
 
@@ -391,65 +430,85 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
     // ── Damage popup helpers ──────────────────────────────────────────────────
 
-    private void showDamagePopup(boolean onPlayer, int dmg, boolean isCrit) {
-        if (onPlayer) {
-            playerDmgText   = "-" + dmg + (isCrit ? "!!" : "");
-            playerDmgAlpha  = 255;
-            playerDmgIsCrit    = isCrit;
-            playerDmgIsHeal    = false;
-            playerDmgIsPassive = false;
-            if (playerDmgTimer != null) playerDmgTimer.stop();
-            playerDmgTimer = new javax.swing.Timer(30, ev -> {
-                playerDmgAlpha -= 18;
-                if (playerDmgAlpha <= 0) { playerDmgAlpha = 0; playerDmgText = null; playerDmgTimer.stop(); }
-                arena.repaint();
-            });
-            playerDmgTimer.start();
+    /**
+     * Spawns a floating text popup that rises and fades independently.
+     * Multiple popups can coexist without cancelling each other.
+     *
+     * @param onPlayer    true = above/beside the player square; false = enemy square
+     * @param text        the string to display (e.g. "-18", "+20", "-20!")
+     * @param isCrit      gold colour and larger font
+     * @param isHeal      green colour; positioned beside entity rather than above
+     * @param isPassiveDmg blue colour (passive bypass damage)
+     */
+    private void spawnPopup(boolean onPlayer, String text,
+                            boolean isCrit, boolean isHeal, boolean isPassiveDmg) {
+        int squareY   = getSquareY();
+        float spawnX, spawnY;
+        boolean leftAnchored;
+
+        if (isHeal) {
+            // Heals appear beside the entity
+            if (onPlayer) {
+                // Player is on the left — text floats to the left of the square
+                spawnX       = (float) playerX - FloatingText.SIDE_OFFSET;
+                leftAnchored = false;   // right-edge anchored (text drawn ending at x)
+            } else {
+                // Enemy is on the right — text floats to the right of the square
+                spawnX       = (float) enemyX + FIGHTER_SIZE + FloatingText.SIDE_OFFSET;
+                leftAnchored = true;
+            }
+            spawnY = squareY + FIGHTER_SIZE / 2f;
         } else {
-            enemyDmgText   = "-" + dmg + (isCrit ? "!" : "");
-            enemyDmgAlpha  = 255;
-            enemyDmgIsCrit    = isCrit;
-            enemyDmgIsHeal    = false;
-            enemyDmgIsPassive = false;
-            if (enemyDmgTimer != null) enemyDmgTimer.stop();
-            enemyDmgTimer = new javax.swing.Timer(30, ev -> {
-                enemyDmgAlpha -= 18;
-                if (enemyDmgAlpha <= 0) { enemyDmgAlpha = 0; enemyDmgText = null; enemyDmgTimer.stop(); }
-                arena.repaint();
-            });
-            enemyDmgTimer.start();
+            // Damage appears above the entity, horizontally centred
+            spawnX       = onPlayer
+                    ? (float) playerX + FIGHTER_SIZE / 2f
+                    : (float) enemyX  + FIGHTER_SIZE / 2f;
+            spawnY       = squareY - 20;
+            leftAnchored = false;
         }
+
+        FloatingText ft = new FloatingText(text, spawnX, spawnY,
+                isCrit, isHeal, isPassiveDmg, false, leftAnchored);
+        floatingTexts.add(ft);
+        ensureFloatTimer();
+    }
+
+    private void showDamageDisplay(boolean onPlayer, int dmg, boolean isCrit) {
+        spawnPopup(onPlayer, "-" + dmg + (isCrit ? "!!" : ""), isCrit, false, false);
     }
 
     private void showPassivePopup(boolean onPlayer, int amount, boolean isHeal) {
-        String text = (isHeal ? "+" : "-") + amount;
-        if (onPlayer) {
-            playerDmgText   = text;
-            playerDmgAlpha  = 255;
-            playerDmgIsCrit    = false;
-            playerDmgIsHeal    = isHeal;
-            playerDmgIsPassive = !isHeal;
-            if (playerDmgTimer != null) playerDmgTimer.stop();
-            playerDmgTimer = new javax.swing.Timer(30, ev -> {
-                playerDmgAlpha -= 18;
-                if (playerDmgAlpha <= 0) { playerDmgAlpha = 0; playerDmgText = null; playerDmgTimer.stop(); }
-                arena.repaint();
-            });
-            playerDmgTimer.start();
-        } else {
-            enemyDmgText   = text;
-            enemyDmgAlpha  = 255;
-            enemyDmgIsCrit    = false;
-            enemyDmgIsHeal    = isHeal;
-            enemyDmgIsPassive = !isHeal;
-            if (enemyDmgTimer != null) enemyDmgTimer.stop();
-            enemyDmgTimer = new javax.swing.Timer(30, ev -> {
-                enemyDmgAlpha -= 18;
-                if (enemyDmgAlpha <= 0) { enemyDmgAlpha = 0; enemyDmgText = null; enemyDmgTimer.stop(); }
-                arena.repaint();
-            });
-            enemyDmgTimer.start();
-        }
+        spawnPopup(onPlayer, (isHeal ? "+" : "-") + amount, false, isHeal, !isHeal);
+    }
+
+    private void spawnMissPopup(boolean onPlayer) {
+        int squareY = getSquareY();
+        float spawnX = onPlayer
+                ? (float) playerX + FIGHTER_SIZE / 2f
+                : (float) enemyX  + FIGHTER_SIZE / 2f;
+        float spawnY = squareY - 20;
+        FloatingText ft = new FloatingText("MISS!", spawnX, spawnY,
+                false, false, false, true, false);
+        floatingTexts.add(ft);
+        ensureFloatTimer();
+    }
+
+    /** Lazily starts (or keeps alive) the shared float animation timer. */
+    private void ensureFloatTimer() {
+        if (floatTimer != null && floatTimer.isRunning()) return;
+        floatTimer = new javax.swing.Timer(FloatingText.TICK_MS, ev -> {
+            floatingTexts.removeIf(ft -> !ft.tick());
+            arena.repaint();
+            if (floatingTexts.isEmpty()) floatTimer.stop();
+        });
+        floatTimer.start();
+    }
+
+    /** Returns the current top-Y of the fighter squares (used for popup spawn positions). */
+    private int getSquareY() {
+        int h = arena.getHeight();
+        int groundY = (int)(h * 0.78);
+        return groundY - FIGHTER_SIZE;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -461,8 +520,9 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         if (bobTimer          != null) bobTimer.stop();
         if (playerFlashTimer  != null) playerFlashTimer.stop();
         if (enemyFlashTimer   != null) enemyFlashTimer.stop();
-        if (playerDmgTimer    != null) playerDmgTimer.stop();
-        if (enemyDmgTimer     != null) enemyDmgTimer.stop();
+        if (floatTimer        != null) floatTimer.stop();
+        if (overlayFadeTimer  != null) overlayFadeTimer.stop();
+        floatingTexts.clear();
     }
 
     private void refreshHpBars() {
@@ -573,29 +633,22 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
             // label
             drawCenteredLabel(g2, battle.getEnemy().getName(), ex + FIGHTER_SIZE / 2, ey - 6, Color.WHITE);
 
-            // ── Damage popups ─────────────────────────────────────────────────
-            if (playerDmgText != null) {
-                if (playerDmgIsHeal) {
-                    // Heal: beside the entity (to the left for the player)
-                    drawDamageText(g2, playerDmgText, px - 8, py + FIGHTER_SIZE / 2, playerDmgAlpha, playerDmgIsCrit, true, playerDmgIsPassive, true);
+            // ── Floating text popups ─────────────────────────────────────────
+            for (FloatingText ft : floatingTexts) {
+                if (ft.isMiss) {
+                    drawMissText(g2, ft.text, (int) ft.x, (int) ft.y, ft.alpha);
                 } else {
-                    // Damage: above, centered
-                    drawDamageText(g2, playerDmgText, px + FIGHTER_SIZE / 2, py - 20, playerDmgAlpha, playerDmgIsCrit, false, playerDmgIsPassive, false);
-                }
-            }
-            if (enemyDmgText != null) {
-                if (enemyDmgIsHeal) {
-                    // Heal: beside the entity to the right (enemy is on the right side)
-                    drawDamageText(g2, enemyDmgText, ex + FIGHTER_SIZE + 8, ey + FIGHTER_SIZE / 2, enemyDmgAlpha, enemyDmgIsCrit, true, enemyDmgIsPassive, true);
-                } else {
-                    // Damage: above, centered
-                    drawDamageText(g2, enemyDmgText, ex + FIGHTER_SIZE / 2, ey - 20, enemyDmgAlpha, enemyDmgIsCrit, false, enemyDmgIsPassive, false);
+                    drawDamageText(g2, ft.text, (int) ft.x, (int) ft.y, ft.alpha,
+                            ft.isCrit, ft.isHeal, ft.isPassiveDmg, ft.leftAnchored);
                 }
             }
 
             // ── Dead X overlay ────────────────────────────────────────────────
             if (!battle.getPlayer().isAlive()) drawDeadX(g2, px, py);
             if (!battle.getEnemy().isAlive())  drawDeadX(g2, ex, ey);
+
+            // ── Victory / Defeat overlay ──────────────────────────────────────
+            if (battleResult != null) drawResultOverlay(g2, w, h);
 
             g2.dispose();
         }
@@ -624,6 +677,71 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
             g2.setColor(c);
             int drawX = leftAnchored ? x : x - tw / 2;
             g2.drawString(text, drawX, y);
+        }
+
+
+        private void drawResultOverlay(Graphics2D g2, int w, int h) {
+            boolean won = battleResult == Battle.BattleState.PLAYER_WIN;
+
+            // ── Dark veil ─────────────────────────────────────────────────────
+            g2.setColor(new Color(0, 0, 0, overlayAlpha));
+            g2.fillRect(0, 0, w, h);
+
+            // ── Coloured banner ───────────────────────────────────────────────
+            Color bannerColor = won
+                    ? new Color(30, 120, 30, overlayAlpha)
+                    : new Color(120, 20, 20, overlayAlpha);
+            int bannerH = h / 3;
+            int bannerY = h / 2 - bannerH / 2;
+            g2.setColor(bannerColor);
+            g2.fillRoundRect(w / 6, bannerY, w * 2 / 3, bannerH, 16, 16);
+            g2.setColor(new Color(255, 255, 255, Math.min(overlayAlpha + 40, 255)));
+            g2.setStroke(new BasicStroke(2));
+            g2.drawRoundRect(w / 6, bannerY, w * 2 / 3, bannerH, 16, 16);
+            g2.setStroke(new BasicStroke(1));
+
+            // ── Headline ──────────────────────────────────────────────────────
+            String headline = won ? "VICTORY" : "DEFEAT";
+            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 36f));
+            FontMetrics fmH = g2.getFontMetrics();
+            int headW = fmH.stringWidth(headline);
+            int headY = bannerY + bannerH / 2 - 4;
+            // shadow
+            g2.setColor(new Color(0, 0, 0, overlayAlpha));
+            g2.drawString(headline, w / 2 - headW / 2 + 2, headY + 2);
+            // text
+            Color headColor = won
+                    ? new Color(180, 255, 130, overlayAlpha)
+                    : new Color(255, 120, 100, overlayAlpha);
+            g2.setColor(headColor);
+            g2.drawString(headline, w / 2 - headW / 2, headY);
+
+            // ── Subtitle ──────────────────────────────────────────────────────
+            String sub = won
+                    ? battle.getPlayer().getName() + " defeated " + battle.getEnemy().getName() + "!"
+                    : battle.getEnemy().getName()  + " has defeated " + battle.getPlayer().getName() + "!";
+            g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 13f));
+            FontMetrics fmS = g2.getFontMetrics();
+            int subW = fmS.stringWidth(sub);
+            int subY = headY + fmH.getHeight() - 4;
+            g2.setColor(new Color(220, 220, 220, overlayAlpha));
+            g2.drawString(sub, w / 2 - subW / 2, subY);
+
+            // ── Reset prompt ──────────────────────────────────────────────────
+            String prompt = "Press Reset to play again";
+            g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 11f));
+            FontMetrics fmP = g2.getFontMetrics();
+            int promptW = fmP.stringWidth(prompt);
+            g2.setColor(new Color(160, 160, 160, overlayAlpha));
+            g2.drawString(prompt, w / 2 - promptW / 2, bannerY + bannerH - 10);
+        }
+
+        private void drawMissText(Graphics2D g2, String text, int cx, int y, int alpha) {
+            g2.setFont(g2.getFont().deriveFont(Font.BOLD | Font.ITALIC, 14f));
+            FontMetrics fm = g2.getFontMetrics();
+            int tw = fm.stringWidth(text);
+            g2.setColor(new Color(200, 200, 200, alpha));
+            g2.drawString(text, cx - tw / 2, y);
         }
 
         private void drawDeadX(Graphics2D g2, int x, int y) {

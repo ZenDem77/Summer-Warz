@@ -1,6 +1,6 @@
-package Combat;
+package Entities;
 
-import Entities.Entity;
+import Combat.NormalBattle.Battle;
 
 public interface Passive {
     int getIntervalMs();

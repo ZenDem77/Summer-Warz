@@ -1,7 +1,9 @@
-package Entities;
+package Entities.Enemies;
 
-import Combat.Battle;
-import Combat.Passive;
+import Entities.Entity;
+import Entities.Enemy;
+import Combat.NormalBattle.Battle;
+import Entities.Passive;
 
 public class Phainon extends Enemy {
 
@@ -16,7 +18,7 @@ public class Phainon extends Enemy {
     };
 
     public Phainon() {
-        super("Phainon", 300, 15, 3, 1200, "Fire Ronin", 15, 30);
+        super("Phainon", 300, 15, 3, 1200, 0.05, 1.50, "Fire Ronin", 15, 30);
     }
 
     @Override
