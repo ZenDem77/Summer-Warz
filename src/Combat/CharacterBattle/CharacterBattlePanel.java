@@ -12,8 +12,7 @@ import java.awt.image.BufferedImage;
  * CharacterBattlePanel — full-screen battle view for Character vs Character.
  *
  * Mirrors BattlePanel exactly in structure and visual style.
- * Both fighters are Characters — both show clan tags in the HUD,
- * and both run their full active passive kits.
+ * Both fighters are Characters — both run their full active passive kits.
  * Battle starts automatically after "Ready…" / "Fight!!" intro.
  */
 public class CharacterBattlePanel extends JPanel implements CharacterBattle.BattleListener {
@@ -436,8 +435,8 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
         Character f1 = battle.getFighter1();
         Character f2 = battle.getFighter2();
-        drawHudEntry(g2, f1.getName() + "  [" + f1.getClan() + " Clan]", f1, BAR_MARGIN, false);
-        drawHudEntry(g2, f2.getName() + "  [" + f2.getClan() + " Clan]", f2, W - BAR_MARGIN - BAR_W, true);
+        drawHudEntry(g2, f1.getName(), f1, BAR_MARGIN, false);
+        drawHudEntry(g2, f2.getName(), f2, W - BAR_MARGIN - BAR_W, true);
     }
 
     private void drawHudEntry(Graphics2D g2, String label, Entity entity, int barX, boolean rightAlign) {

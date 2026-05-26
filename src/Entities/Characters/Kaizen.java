@@ -11,35 +11,36 @@ public class Kaizen extends Character {
     // ── Passive 1 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_1_DMG_MIN     = 5;
     private static final int PASSIVE_1_DMG_MAX     = 15;
-    private static final int PASSIVE_1_INTERVAL_MS = 1200;
+    private static final int PASSIVE_1_INTERVAL_MS = 1000;
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_2_HEAL_MIN    = 10;
     private static final int PASSIVE_2_HEAL_MAX    = 30;
-    private static final int PASSIVE_2_INTERVAL_MS = 3000;
+    private static final int PASSIVE_2_INTERVAL_MS = 2000;
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_3_BONUS_DAMAGE = 50;
-    private static final int PASSIVE_3_INTERVAL_MS  = 10000;
+    private static final int PASSIVE_3_INTERVAL_MS  = 4000;
 
     public Kaizen() {
-        super("Kaizen", 140, 16, 4, 800, 0.05, 0.50, 1, "Iron");
+        super("Kaizen", 340, 16, 4, 500, 0.05, 0.50, 1);
     }
 
-    @Override
-    public String getSpecialMoveName() { return "Kaizen Fist"; }
-
     // ── Passive slots ─────────────────────────────────────────────────────────
-
     @Override
     public Passive[] getPassives() {
         return new Passive[]{ passive1(), passive2(), passive3() };
     }
 
+    private static String msToSec(int ms) {
+        double s = ms / 1000.0;
+        return (s == (int) s ? String.valueOf((int) s) : String.valueOf(s)) + "s";
+    }
+
     private Passive passive1() {
         return new Passive() {
             @Override public String getName()        { return "Chaos Strike"; }
-            @Override public String getDescription() { return "Deal " + PASSIVE_1_DMG_MIN + "–" + PASSIVE_1_DMG_MAX + " random bonus dmg every 1.2s (bypasses DEF)"; }
+            @Override public String getDescription() { return "Deal " + PASSIVE_1_DMG_MIN + "–" + PASSIVE_1_DMG_MAX + " random bonus dmg every " + msToSec(PASSIVE_1_INTERVAL_MS) + " (bypasses DEF)"; }
             @Override public int    getIntervalMs()  { return PASSIVE_1_INTERVAL_MS; }
 
             @Override
@@ -57,7 +58,7 @@ public class Kaizen extends Character {
     private Passive passive2() {
         return new Passive() {
             @Override public String getName()        { return "Iron Recovery"; }
-            @Override public String getDescription() { return "Heal " + PASSIVE_2_HEAL_MIN + "–" + PASSIVE_2_HEAL_MAX + " random HP every 3s"; }
+            @Override public String getDescription() { return "Heal " + PASSIVE_2_HEAL_MIN + "–" + PASSIVE_2_HEAL_MAX + " random HP every " + msToSec(PASSIVE_2_INTERVAL_MS); }
             @Override public int    getIntervalMs()  { return PASSIVE_2_INTERVAL_MS; }
 
             @Override
@@ -75,7 +76,7 @@ public class Kaizen extends Character {
     private Passive passive3() {
         return new Passive() {
             @Override public String getName()        { return "Iron Wrath"; }
-            @Override public String getDescription() { return "Deal " + PASSIVE_3_BONUS_DAMAGE + " flat bonus dmg every 10s (bypasses DEF)"; }
+            @Override public String getDescription() { return "Deal " + PASSIVE_3_BONUS_DAMAGE + " flat bonus dmg every " + msToSec(PASSIVE_3_INTERVAL_MS) + " (bypasses DEF)"; }
             @Override public int    getIntervalMs()  { return PASSIVE_3_INTERVAL_MS; }
 
             @Override
@@ -95,12 +96,12 @@ public class Kaizen extends Character {
     public void levelUp() {
         switch (checkLevel()) {
             case 1 -> { maxHp += 4;  attack += 1; }
-            case 2 -> { maxHp += 6;  attack += 2; defense += 1; }
-            case 3 -> { maxHp += 8;  attack += 3; defense += 1; }
-            case 4 -> { maxHp += 12; attack += 4; defense += 2; }
+            case 2 -> { maxHp += 6;  attack += 2; }
+            case 3 -> { maxHp += 8;  attack += 3; }
+            case 4 -> { maxHp += 12; attack += 4; defense += 1; }
         }
     }
 
     @Override
-    public String toString() { return "[" + clan + " Clan] " + super.toString(); }
+    public String toString() { return super.toString(); }
 }
