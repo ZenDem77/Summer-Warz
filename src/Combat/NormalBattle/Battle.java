@@ -157,8 +157,9 @@ public class Battle implements IBattle {
         }
         int dmg = applyPassiveEvent(defender, attacker, PassiveEvent.ON_TAKE_DAMAGE, result.amount, result.isCrit);
         applyPassiveEvent(attacker, defender, PassiveEvent.ON_DEAL_DAMAGE, dmg, result.isCrit);
+        int actualDmg = Math.min(dmg, defender.getCurrentHp());   // cap overkill
         defender.takeDamage(dmg);
-        trackDamage(getActivePlayer(), dmg);
+        trackDamage(getActivePlayer(), actualDmg);
 
         String log = (result.isCrit ? "★ CRIT! " : "")
                 + attacker.getName() + " hits " + defender.getName()
