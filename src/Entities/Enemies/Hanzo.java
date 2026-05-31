@@ -31,9 +31,9 @@ public class Hanzo extends Enemy {
             public void trigger(PassiveContext ctx) {
                 if (!ctx.isCrit) return;   // only intercept crits
                 int reduced = (int)(ctx.incomingDamage * CRIT_REDUCTION);
-                ctx.incomingDamage = reduced;
+                ctx.incomingDamage -= reduced;
                 ctx.battle.notifyPassive(ctx.owner, ctx.owner, getName(),
-                        "crit reduced to " + reduced + " dmg", 0, false);
+                        "crit reduced by " + reduced + " dmg", 0, false);
             }
         };
     }
