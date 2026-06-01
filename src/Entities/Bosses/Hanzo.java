@@ -1,11 +1,9 @@
-package Entities.Enemies;
+package Entities.Bosses;
 
 import Entities.Enemy;
 import Entities.Passive;
 import Entities.PassiveContext;
 import Entities.PassiveEvent;
-import java.util.EnumSet;
-import java.util.Set;
 
 public class Hanzo extends Enemy {
 

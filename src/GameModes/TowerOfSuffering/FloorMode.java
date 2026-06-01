@@ -2,46 +2,13 @@ package GameModes.TowerOfSuffering;
 
 import Combat.NormalBattle.Battle;
 import Entities.Character;
+import Entities.Bosses.*;
 import Entities.Enemies.*;
 import Entities.Enemy;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * FloorMode — logic layer for the floor-climbing game mode.
- *
- * The player climbs 100 floors fighting enemies. Every 5th floor is a boss.
- * Character HP carries over between floors — there is no rest between fights.
- *
- * ── How to connect to UI later ─────────────────────────────────────────────
- *
- *  1. Construct:   FloorMode mode = new FloorMode(playerTeam);
- *  2. Subscribe:   mode.addListener(yourFloorModeListener);
- *  3. Start:       Battle battle = mode.startCurrentFloor();
- *  4. Wire battle: battle.addListener(yourBattleListener);
- *                  yourGamePanel.showPanel(new BattlePanel(battle));
- *  5. On win:      call mode.onBattleWon()  → listener fires onFloorComplete / onModeComplete
- *  6. On loss:     call mode.onBattleLost() → listener fires onGameOver
- *
- *  The BattlePanel already calls battle.stop() on end; FloorMode does not
- *  need to manage Battle internals — only its own state.
- *
- * ── Floor layout ───────────────────────────────────────────────────────────
- *
- *  Floors  1– 4  : normal
- *  Floor   5     : BOSS
- *  Floors  6– 9  : normal
- *  Floor  10     : BOSS
- *  … (pattern repeats every 5 floors up to 100)
- *
- * ── Package suggestion ─────────────────────────────────────────────────────
- *  Place in: src/GameModes/FloorMode.java
- *  Add at top: package GameModes;
- *  Then add imports for Combat.NormalBattle.Battle,
- *               Entities.Character, Entities.Enemy,
- *               Entities.Enemies.Phainon, Entities.Enemies.Hanzo, etc.
- */
 public class FloorMode {
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -180,59 +147,26 @@ public class FloorMode {
     // ─────────────────────────────────────────────────────────────────────────
     //  Floor definitions (1–100)
     // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Builds all 100 floor definitions.
-     *
-     * Floors 1–10   : fully defined with enemies.
-     * Floors 11–100 : reserved — add enemies where indicated by TODO comments.
-     *
-     * Boss floors (multiples of 5) are automatically flagged by Floor.isBoss().
-     */
     private List<Floor> buildFloors() {
         List<Floor> f = new ArrayList<>();
 
-        // ══════════════════════════════════════════════════════════════════════
-        //  FLOORS 1–10  (defined)
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Floors 1–4 ────────────────────────────────────────────────────────
+        f.add(new Floor(1, () -> List.of(new UnknownSubject(1))));
+        f.add(new Floor(2, () -> List.of(new ExperimentalSubject(1))));
+        f.add(new Floor(3, () -> List.of(new UnknownSubject(1), new UnknownSubject(1))));
+        f.add(new Floor(4, () -> List.of(new  ExperimentalSubject(1),  new ExperimentalSubject(1))));
 
-        // Floor 1 — intro fight
-        f.add(new Floor(1, () -> List.of(new Phainon())));
+        // ── Floor 5 — ★ BOSS ─────────────────────────────────────────────────
+        f.add(new Floor(5, () -> List.of(new Phainon())));
 
-        // Floor 2
-        f.add(new Floor(2, () -> List.of(new Phainon(), new Phainon())));
+        // ── Floors 6–9 ────────────────────────────────────────────────────────
+        f.add(new Floor(6, () -> List.of(new ExperimentalSubject(1), new UnknownSubject(1))));
+        f.add(new Floor(7, () -> List.of(new UnknownSubject(1), new UnknownSubject(1), new UnknownSubject(1))));
+        f.add(new Floor(8, () -> List.of(new ExperimentalSubject(1), new ExperimentalSubject(1), new ExperimentalSubject(1))));
+        f.add(new Floor(9, () -> List.of(new  UnknownSubject(1), new ExperimentalSubject(1), new UnknownSubject(1), new ExperimentalSubject(1))));
 
-        // Floor 3
-        f.add(new Floor(3, () -> List.of(new Phainon(), new Phainon(), new Phainon())));
-
-        // Floor 4
-        f.add(new Floor(4, () -> List.of(new Hanzo(), new Phainon())));
-
-        // Floor 5 — ★ BOSS
-        f.add(new Floor(5, () -> List.of(new Hanzo(), new Hanzo())));
-
-        // Floor 6
-        f.add(new Floor(6, () -> List.of(new Phainon(), new Phainon(), new Hanzo())));
-
-        // Floor 7
-        f.add(new Floor(7, () -> List.of(new Hanzo(), new Phainon(), new Phainon())));
-
-        // Floor 8
-        f.add(new Floor(8, () -> List.of(new Hanzo(), new Hanzo(), new Phainon())));
-
-        // Floor 9
-        f.add(new Floor(9, () -> List.of(new Hanzo(), new Hanzo(), new Phainon(), new Phainon())));
-
-        // Floor 10 — ★ BOSS
-        f.add(new Floor(10, () -> List.of(new Hanzo(), new Hanzo(), new Hanzo())));
-
-        // ══════════════════════════════════════════════════════════════════════
-        //  FLOORS 11–100  (reserved — add your enemies below)
-        //
-        //  Pattern:
-        //    f.add(new Floor(N, () -> List.of( /* your enemies here */ )));
-        //  Boss floors (15, 20, 25 … 100) are flagged automatically.
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Floor 10 — ★ BOSS ────────────────────────────────────────────────
+        f.add(new Floor(10, () -> List.of(new Hanzo())));
 
         // ── Floors 11–14 ──────────────────────────────────────────────────────
         f.add(new Floor(11, () -> List.of( /* TODO: add enemies for floor 11 */ )));

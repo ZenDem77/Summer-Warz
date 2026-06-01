@@ -1,7 +1,5 @@
-package Entities.Enemies;
+package Entities.Bosses;
 
-import Combat.IBattle;
-import Entities.Entity;
 import Entities.Enemy;
 import Entities.Passive;
 import Entities.PassiveContext;
