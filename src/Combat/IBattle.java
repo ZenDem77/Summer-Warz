@@ -22,4 +22,6 @@ public interface IBattle {
                        String effectDesc, int amount, boolean isHeal);
 
     void checkEndPublic();
+
+    void notifyShield(Entity owner, String passiveName, int amount);
 }

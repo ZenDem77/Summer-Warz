@@ -7,7 +7,7 @@ import Entities.PassiveEvent;
 
 public class Hanzo extends Enemy {
 
-    private static final double CRIT_REDUCTION = 0.50;   // 50% crit damage reduction
+    private static final double CRIT_REDUCTION = 0.75;   // 75% crit damage reduction
 
     public Hanzo() {
         super("Hanzo", 700, 13, 7, 500, 0.80, 2.00);

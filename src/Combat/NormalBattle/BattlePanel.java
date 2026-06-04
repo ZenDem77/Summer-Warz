@@ -316,6 +316,12 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     private void showDmgPopup(boolean onPlayer, int dmg, boolean isCrit) {
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX,
                 onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
+        if (dmg <= 0) {
+            // Shield absorbed the entire hit — show BLOCK in blue
+            floatingTexts.add(new FloatingText("BLOCK", sp.x + SPRITE_W / 2f, sp.y - 10,
+                    false, false, true, false, false));
+            return;
+        }
         String txt = "-" + dmg + (isCrit ? "!" : "");
         floatingTexts.add(new FloatingText(txt, sp.x + SPRITE_W / 2f, sp.y - 10,
                 isCrit, false, false, false, false));
@@ -469,6 +475,26 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         int hx = rightAlign ? barX + BAR_W - fm.stringWidth(hp) : barX;
         g2.setColor(new Color(220, 220, 220));
         g2.drawString(hp, hx, by + BAR_H + 13);
+
+        // ── Shield bar + text (only when shield is active) ──────────────────
+        if (entity instanceof Entities.Shielded s && s.getShieldHp() > 0) {
+            // Blue overlay on HP bar proportional to shield / maxHp
+            double shieldPct = Math.min(1.0, (double) s.getShieldHp() / entity.getMaxHp());
+            int shieldW = Math.max(4, (int)(BAR_W * shieldPct));
+            g2.setColor(new Color(80, 130, 255, 150));
+            g2.fillRoundRect(barX, by, shieldW, BAR_H, BAR_H, BAR_H);
+            // Gloss on shield bar
+            g2.setColor(new Color(160, 190, 255, 60));
+            g2.fillRoundRect(barX, by, shieldW, BAR_H / 2, BAR_H, BAR_H);
+
+            // Shield text below HP numbers
+            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+            fm = g2.getFontMetrics();
+            String shieldStr = "Shield: " + s.getShieldHp();
+            int shx = rightAlign ? barX + BAR_W - fm.stringWidth(shieldStr) : barX;
+            g2.setColor(new Color(130, 170, 255));
+            g2.drawString(shieldStr, shx, by + BAR_H + 26);
+        }
     }
 
     /**

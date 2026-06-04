@@ -163,6 +163,15 @@ public class CharacterBattle implements IBattle {
     // ── IBattle ───────────────────────────────────────────────────────────────
 
     @Override
+    public void notifyShield(Entity owner, String passiveName, int amount) {
+        String total = (owner instanceof Entities.Shielded s)
+                ? " (total: " + s.getShieldHp() + ")" : "";
+        String log = "[" + passiveName + "] " + owner.getName()
+                + " — +" + amount + " shield" + total;
+        for (BattleListener l : listeners) l.onPassive(log, owner, amount, true);
+    }
+
+    @Override
     public void notifyPassive(Entity owner, Entity target, String passiveName,
                               String effectDesc, int amount, boolean isHeal) {
         String log = "[" + passiveName + "] " + owner.getName() + " — " + effectDesc
