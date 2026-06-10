@@ -12,7 +12,7 @@ public class UnknownSubject extends Enemy {
     private final int tier;
 
     public UnknownSubject(int tier) {
-        super("Unknown Subject",
+        super("Unknown Subject " + tier,
                 calcHp(tier),
                 calcAtk(tier),
                 calcDef(tier),
