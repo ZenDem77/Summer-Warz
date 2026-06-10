@@ -2,8 +2,7 @@ package Entities.Characters;
 
 import Entities.Entity;
 import Entities.Character;
-import Entities.PassiveHandler.Passive;
-import Entities.PassiveHandler.PassiveContext;
+import Entities.PassiveHandler.*;
 
 public class Kaizen extends Character {
 

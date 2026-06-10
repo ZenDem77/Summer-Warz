@@ -1,10 +1,7 @@
 package Entities.Enemies;
 
 import Entities.Enemy;
-import Entities.PassiveHandler.Passive;
-import Entities.PassiveHandler.PassiveContext;
-import Entities.PassiveHandler.PassiveEvent;
-import Entities.PassiveHandler.Shielded;
+import Entities.PassiveHandler.*;
 
 import java.util.EnumSet;
 import java.util.Set;

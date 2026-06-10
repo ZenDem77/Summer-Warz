@@ -2,8 +2,7 @@ package Combat.NormalBattle;
 
 import Entities.Character;
 import Entities.Entity;
-import Entities.PassiveHandler.Shielded;
-
+import Entities.PassiveHandler.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;

@@ -1,7 +1,7 @@
 package Entities;
 
 import Combat.DamageResult;
-import Entities.PassiveHandler.Passive;
+import Entities.PassiveHandler.*;
 
 public abstract class Entity {
     protected String name;
