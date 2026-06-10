@@ -1,7 +1,7 @@
 package Combat;
 
 import Entities.Entity;
-import Entities.PassiveEvent;
+import Entities.PassiveHandler.PassiveEvent;
 
 public interface IBattle {
 

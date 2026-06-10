@@ -1,10 +1,9 @@
 package Entities.Enemies;
 
 import Entities.Enemy;
-import Entities.Entity;
-import Entities.Passive;
-import Entities.PassiveContext;
-import Entities.PassiveEvent;
+import Entities.PassiveHandler.Passive;
+import Entities.PassiveHandler.PassiveContext;
+import Entities.PassiveHandler.PassiveEvent;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -36,8 +35,8 @@ public class ExperimentalSubject extends Enemy {
                     "ExperimentalSubject tier must be 1–10, got: " + tier);
     }
 
-    private static int calcHp(int tier)    { return tier * 180; }
-    private static int calcAtk(int tier)   { return  30 + (tier - 1) * 8;  }
+    private static int calcHp(int tier)    { return 180 + (tier - 1) * 540; }
+    private static int calcAtk(int tier)   { return  30 + (tier - 1) * 2;  }
     private static int calcDef(int tier)   { return   5 + (tier - 1) * 3;   }
     private static int calcSpeed(int tier) { return  900 - (tier - 1) * 40; }
 

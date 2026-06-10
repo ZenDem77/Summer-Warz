@@ -1,8 +1,8 @@
 package Combat.CharacterBattle;
 
-import Combat.CharacterBattle.CharacterBattle;
 import Entities.Character;
 import Entities.Entity;
+import Entities.PassiveHandler.Shielded;
 
 import javax.swing.*;
 import java.awt.*;
@@ -472,7 +472,7 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
         g2.setColor(new Color(220, 220, 220));
         g2.drawString(hp, hx, by + BAR_H + 13);
 
-        if (entity instanceof Entities.Shielded s && s.getShieldHp() > 0) {
+        if (entity instanceof Shielded s && s.getShieldHp() > 0) {
             double shieldPct = Math.min(1.0, (double) s.getShieldHp() / entity.getMaxHp());
             int shieldW = Math.max(4, (int)(BAR_W * shieldPct));
             g2.setColor(new Color(80, 130, 255, 150));

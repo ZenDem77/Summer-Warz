@@ -1,8 +1,8 @@
 package Entities.Bosses;
 
 import Entities.Enemy;
-import Entities.Passive;
-import Entities.PassiveContext;
+import Entities.PassiveHandler.Passive;
+import Entities.PassiveHandler.PassiveContext;
 
 public class Phainon extends Enemy {
 

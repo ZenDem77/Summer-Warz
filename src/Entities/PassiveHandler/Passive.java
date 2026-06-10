@@ -1,8 +1,7 @@
-package Entities;
+package Entities.PassiveHandler;
 
 import Combat.IBattle;
-import java.util.EnumSet;
-import java.util.Set;
+import Entities.Entity;
 
 public interface Passive {
 

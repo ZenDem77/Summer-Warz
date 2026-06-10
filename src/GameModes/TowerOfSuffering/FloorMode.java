@@ -151,7 +151,7 @@ public class FloorMode {
         List<Floor> f = new ArrayList<>();
 
         // ── Floors 1–4 ────────────────────────────────────────────────────────
-        f.add(new Floor(1, () -> List.of(new UnknownSubject(1))));
+        f.add(new Floor(1, () -> List.of(new IndestructibleSubject(10))));
         f.add(new Floor(2, () -> List.of(new ExperimentalSubject(1))));
         f.add(new Floor(3, () -> List.of(new UnknownSubject(1), new UnknownSubject(1))));
         f.add(new Floor(4, () -> List.of(new  ExperimentalSubject(1),  new ExperimentalSubject(1))));

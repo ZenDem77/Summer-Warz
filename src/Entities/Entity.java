@@ -1,6 +1,7 @@
 package Entities;
 
 import Combat.DamageResult;
+import Entities.PassiveHandler.Passive;
 
 public abstract class Entity {
     protected String name;
@@ -33,7 +34,8 @@ public abstract class Entity {
             return new DamageResult(0, false, true);   // miss
         }
         boolean crit = Math.random() < critRate;
-        double  raw  = crit ? attack + (attack * critDamage) : attack;
+        int     atk  = getEffectiveAtk();
+        double  raw  = crit ? atk + (atk * critDamage) : atk;
         int     dmg  = Math.max(1, (int) raw - defender.getDefense());
         return new DamageResult(dmg, crit, false);
     }
@@ -58,6 +60,7 @@ public abstract class Entity {
     public int    getMaxHp()       { return maxHp; }
     public int    getCurrentHp()   { return currentHp; }
     public int    getAttack()      { return attack; }
+    public int    getEffectiveAtk(){ return attack; }
     public int    getDefense()     { return defense; }
     public int    getAttackSpeed() { return attackSpeed; }
     public double getCritRate()    { return critRate; }
@@ -69,6 +72,7 @@ public abstract class Entity {
     // ── Crit stat modifiers (called by weapons/items) ─────────────────────────
     public void addCritRate(double bonus)   { critRate   += bonus; }
     public void addCritDamage(double bonus) { critDamage += bonus; }
+    public void addAccuracy(double bonus)   { accuracy   += bonus; }
 
     @Override
     public String toString() {

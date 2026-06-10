@@ -1,9 +1,9 @@
 package Entities.Bosses;
 
 import Entities.Enemy;
-import Entities.Passive;
-import Entities.PassiveContext;
-import Entities.PassiveEvent;
+import Entities.PassiveHandler.Passive;
+import Entities.PassiveHandler.PassiveContext;
+import Entities.PassiveHandler.PassiveEvent;
 
 public class Hanzo extends Enemy {
 

@@ -1,12 +1,10 @@
 package Entities.Enemies;
 
-import Combat.IBattle;
 import Entities.Enemy;
-import Entities.Entity;
-import Entities.Passive;
-import Entities.PassiveContext;
-import Entities.PassiveEvent;
-import Entities.Shielded;
+import Entities.PassiveHandler.Passive;
+import Entities.PassiveHandler.PassiveContext;
+import Entities.PassiveHandler.PassiveEvent;
+import Entities.PassiveHandler.Shielded;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -15,7 +13,7 @@ public class IndestructibleSubject extends Enemy implements Shielded {
 
     private static final double CRIT_RATE       = 0.75;
     private static final double CRIT_DAMAGE     = 1.80;
-    private static final int    SHIELD_INTERVAL = 2000;  // ms between shield grants
+    private static final int    SHIELD_INTERVAL = 3000;  // ms between shield grants
 
     private final int tier;
     private       int shieldHp = 0;
@@ -41,13 +39,13 @@ public class IndestructibleSubject extends Enemy implements Shielded {
                     "IndestructibleSubject tier must be 1–10, got: " + tier);
     }
 
-    private static int calcHp(int tier)    { return tier * 200; }
-    private static int calcAtk(int tier)   { return  28 + (tier - 1) * 6;  }
+    private static int calcHp(int tier)    { return 200 + (tier - 1) * 600; }
+    private static int calcAtk(int tier)   { return  28 + (tier - 1);  }
     private static int calcDef(int tier)   { return   8 + (tier - 1) * 2;  }
     private static int calcSpeed(int tier) { return 1000 - (tier - 1) * 50; }
 
     // ── Shield formula ────────────────────────────────────────────────────────
-    private int shieldPerStack() { return 20 + tier * 8; }
+    private int shieldPerStack() { return 20 + tier * 20; }
 
     // ── Shielded interface ────────────────────────────────────────────────────
     @Override
@@ -71,7 +69,7 @@ public class IndestructibleSubject extends Enemy implements Shielded {
             }
 
             @Override public String getName()        { return "Iron Shield"; }
-            @Override public String getDescription() { return "Gains " + shieldPerStack() + " shield every 2s (stacks)"; }
+            @Override public String getDescription() { return "Gains " + shieldPerStack() + " shield every 3s (stacks)"; }
             @Override public int    getIntervalMs()  { return SHIELD_INTERVAL; }
 
             @Override

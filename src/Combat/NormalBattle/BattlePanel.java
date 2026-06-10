@@ -1,9 +1,8 @@
 package Combat.NormalBattle;
 
-import Combat.IBattle;
 import Entities.Character;
-import Entities.Enemy;
 import Entities.Entity;
+import Entities.PassiveHandler.Shielded;
 
 import javax.swing.*;
 import java.awt.*;
@@ -477,7 +476,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         g2.drawString(hp, hx, by + BAR_H + 13);
 
         // ── Shield bar + text (only when shield is active) ──────────────────
-        if (entity instanceof Entities.Shielded s && s.getShieldHp() > 0) {
+        if (entity instanceof Shielded s && s.getShieldHp() > 0) {
             // Blue overlay on HP bar proportional to shield / maxHp
             double shieldPct = Math.min(1.0, (double) s.getShieldHp() / entity.getMaxHp());
             int shieldW = Math.max(4, (int)(BAR_W * shieldPct));

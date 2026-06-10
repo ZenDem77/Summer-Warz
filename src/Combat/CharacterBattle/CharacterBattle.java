@@ -4,9 +4,10 @@ import Combat.DamageResult;
 import Combat.IBattle;
 import Entities.Character;
 import Entities.Entity;
-import Entities.Passive;
-import Entities.PassiveContext;
-import Entities.PassiveEvent;
+import Entities.PassiveHandler.Passive;
+import Entities.PassiveHandler.PassiveContext;
+import Entities.PassiveHandler.PassiveEvent;
+import Entities.PassiveHandler.Shielded;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -164,7 +165,7 @@ public class CharacterBattle implements IBattle {
 
     @Override
     public void notifyShield(Entity owner, String passiveName, int amount) {
-        String total = (owner instanceof Entities.Shielded s)
+        String total = (owner instanceof Shielded s)
                 ? " (total: " + s.getShieldHp() + ")" : "";
         String log = "[" + passiveName + "] " + owner.getName()
                 + " — +" + amount + " shield" + total;
