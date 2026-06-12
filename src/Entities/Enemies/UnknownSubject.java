@@ -30,7 +30,7 @@ public class UnknownSubject extends Enemy {
                     "UnknownSubject tier must be 1–10, got: " + tier);
     }
 
-    private static int calcHp(int tier)    { return 150 + (tier - 1) * 450; }
+    private static int calcHp(int tier)    { return 150 + (tier - 1) * 900; }
     private static int calcAtk(int tier)   { return  20 + (tier - 1) * 2;  }
     private static int calcDef(int tier)   { return   2 + (tier - 1) * 2;   }
     private static int calcSpeed(int tier) { return 1000 - (tier - 1) * 50; }

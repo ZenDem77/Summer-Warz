@@ -6,6 +6,7 @@ import Entities.Characters.*;
 import Entities.Bosses.*;
 import Entities.Enemies.IndestructibleSubject;
 import Entities.Enemy;
+import Entities.Weapons.*;
 import GameMain.GamePanel;
 import GameModes.TowerOfSuffering.*;
 
