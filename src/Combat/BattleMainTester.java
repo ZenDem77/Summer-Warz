@@ -20,7 +20,19 @@ import java.util.List;
 //            GamePanel window = new GamePanel();
 //
 //            // Character vs Enemy test battle
-//            List<Character> team = List.of(new Zed(), new Kaizen());
+//            Zed zed = new Zed();
+//            Kaizen kaizen = new Kaizen();
+//            Zayir zayir = new Zayir();
+//            List<Entities.Character> team = List.of(zayir, zed, kaizen);
+//
+//            Weapon weaponZ = new IronEdge();
+//            Weapon weaponK = new IronEdge();
+//            Weapon weapon  = new WolvesGravestone();
+//
+//            weaponZ.equip(zed); weaponZ.setWeaponLevel(10);
+//            weaponK.equip(kaizen); weaponK.setWeaponLevel(10);
+//            weapon.equip(zayir); weapon.setWeaponLevel(20);
+//
 //            List<Enemy> enemies  = List.of(new IndestructibleSubject(10));
 //            window.showPanel(new BattlePanel(new Battle(team, enemies)));
 //
@@ -39,11 +51,17 @@ public class BattleMainTester {
             // ── Build player team ─────────────────────────────────────────────
             Zed zed = new Zed();
             Kaizen kaizen = new Kaizen();
+            Zayir zayir = new Zayir();
+            List<Entities.Character> team = List.of(zayir, zed, kaizen);
+
+            // ── Weapons ───────────────────────────────────────────────────────
             Weapon weaponZ = new IronEdge();
             Weapon weaponK = new IronEdge();
-            List<Entities.Character> team = List.of(zed, kaizen);
+            Weapon weapon  = new WolvesGravestone();
+
             weaponZ.equip(zed); weaponZ.setWeaponLevel(10);
             weaponK.equip(kaizen); weaponK.setWeaponLevel(10);
+            weapon.equip(zayir); weapon.setWeaponLevel(1);
 
             // ── Create FloorMode ──────────────────────────────────────────────
             FloorMode mode = new FloorMode(team);

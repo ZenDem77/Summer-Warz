@@ -6,7 +6,7 @@ import Entities.PassiveHandler.*;
 public class Phainon extends Enemy {
 
     // ── Passive constants ─────────────────────────────────────────────────────
-    private static final int PASSIVE_HEAL_AMOUNT = 30;
+    private static final int PASSIVE_HEAL_AMOUNT = 100;
     private static final int PASSIVE_INTERVAL_MS = 3000;
 
     private static String msToSec(int ms) {

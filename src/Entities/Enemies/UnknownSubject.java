@@ -52,7 +52,7 @@ public class UnknownSubject extends Enemy {
 
         return new Passive() {
             @Override public String getName()       { return "Corruption Burst"; }
-            @Override public String getDescription(){ return "Deal " + dmg + " bonus dmg every " + msToSec(interval) + " (bypasses DEF)"; }
+            @Override public String getDescription(){ return "Deal " + dmg + " True Damage every " + msToSec(interval); }
             @Override public int    getIntervalMs() { return interval; }
 
             @Override
@@ -61,7 +61,7 @@ public class UnknownSubject extends Enemy {
                 int actual = Math.min(dmg, target.getCurrentHp());
                 target.takeDamage(dmg);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " bonus dmg (bypasses DEF)", actual, false);
+                        actual + " True Damage", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
