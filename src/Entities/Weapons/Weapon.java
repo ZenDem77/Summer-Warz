@@ -145,7 +145,7 @@ public abstract class Weapon {
 
         double secVal = getCurrentSecondaryValue();
         String secStr = switch (secondaryStatType) {
-            case CRIT_RATE, CRIT_DAMAGE, ACCURACY, ATK_PERCENT ->
+            case CRIT_RATE, CRIT_DAMAGE, ACCURACY, ATK_PERCENT, DEF_PERCENT, HP_PERCENT ->
                     secondaryStatType.name().replace("_", " ")
                             + " +" + (int)(secVal * 100) + "%";
             case ATK, DEF, HP ->
