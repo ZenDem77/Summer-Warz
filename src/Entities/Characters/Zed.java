@@ -1,5 +1,6 @@
 package Entities.Characters;
 
+import Combat.DamageResult;
 import Entities.Entity;
 import Entities.Character;
 import Entities.PassiveHandler.*;
@@ -45,8 +46,10 @@ public class Zed extends Character {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                int actual = Math.min(PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG, target.getCurrentHp());
-                target.takeDamage(PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG);
+                DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG);
+                if (result.isMiss) return;
+                int actual = Math.min(result.amount, target.getCurrentHp());
+                target.takeDamage(result.amount);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
                         actual + " True Damage",
                         actual, false);
@@ -64,8 +67,10 @@ public class Zed extends Character {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                int actual = Math.min(PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG, target.getCurrentHp());
-                target.takeDamage(PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG);
+                DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG);
+                if (result.isMiss) return;
+                int actual = Math.min(result.amount, target.getCurrentHp());
+                target.takeDamage(result.amount);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
                         actual + " True Damage",
                         actual, false);
@@ -83,12 +88,13 @@ public class Zed extends Character {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                int actual = Math.min(PASSIVE_3_BONUS_DAMAGE, target.getCurrentHp());
-                target.takeDamage(PASSIVE_3_BONUS_DAMAGE);
-                ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " True Damage",
-                        actual, false);
-                ctx.battle.checkEndPublic();
+                DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_3_BONUS_DAMAGE);
+                if (!result.isMiss) {
+                    int actual = Math.min(result.amount, target.getCurrentHp());
+                    target.takeDamage(result.amount);
+                    ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
+                    ctx.battle.checkEndPublic();
+                }
                 if (ctx.owner.isAlive()) {
                     int before = ctx.owner.getCurrentHp();
                     ctx.owner.heal(PASSIVE_3_HEAL_AMOUNT);

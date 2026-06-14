@@ -1,5 +1,6 @@
 package Entities.Enemies;
 
+import Combat.DamageResult;
 import Entities.Enemy;
 import Entities.Entity;
 import Entities.PassiveHandler.*;
@@ -58,10 +59,11 @@ public class UnknownSubject extends Enemy {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                int actual = Math.min(dmg, target.getCurrentHp());
-                target.takeDamage(dmg);
-                ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " True Damage", actual, false);
+                DamageResult result = ctx.owner.calculateTrueDamage(dmg);
+                if (result.isMiss) return;
+                int actual = Math.min(result.amount, target.getCurrentHp());
+                target.takeDamage(result.amount);
+                ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };

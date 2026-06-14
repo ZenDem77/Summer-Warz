@@ -1,5 +1,6 @@
 package Entities.Characters;
 
+import Combat.DamageResult;
 import Entities.Entity;
 import Entities.Character;
 import Entities.PassiveHandler.*;
@@ -17,7 +18,7 @@ public class Zayir extends Character {
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_2_ATK_BONUS    = 100;
-    private static final int PASSIVE_2_DURATION_MS  = 2000;
+    private static final int PASSIVE_2_DURATION_MS  = 2400;
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_3_ATK_BONUS = 50;
@@ -67,8 +68,10 @@ public class Zayir extends Character {
 
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 int dmg = PASSIVE_1_FLAT_DAMAGE + (int) (PASSIVE_1_ATK_PERCENT * ctx.owner.getEffectiveAtk());
-                int actual = Math.min(dmg, target.getCurrentHp());
-                target.takeDamage(dmg);
+                DamageResult result = ctx.owner.calculateTrueDamage(dmg);
+                if (result.isMiss) return;
+                int actual = Math.min(result.amount, target.getCurrentHp());
+                target.takeDamage(result.amount);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
                         actual + " true damage", actual, false);
                 ctx.battle.checkEndPublic();
@@ -165,7 +168,7 @@ public class Zayir extends Character {
             case 1 -> { maxHp += 5;  attack += 2; }
             case 2 -> { maxHp += 7;  attack += 3; }
             case 3 -> { maxHp += 9;  attack += 4; }
-            case 4 -> { maxHp += 13; attack += 4; defense += 1; }
+            case 4 -> { maxHp += 13; attack += 5; defense += 1; }
         }
     }
 

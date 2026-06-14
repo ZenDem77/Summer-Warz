@@ -1,5 +1,6 @@
 package Entities.Characters;
 
+import Combat.DamageResult;
 import Entities.Entity;
 import Entities.Character;
 import Entities.PassiveHandler.*;
@@ -48,8 +49,10 @@ public class Kaizen extends Character {
             public void trigger(PassiveContext ctx) {
                 int dmg = PASSIVE_1_BASE_DMG_MIN + (int)(Math.random() * (PASSIVE_1_BASE_DMG_MAX - PASSIVE_1_BASE_DMG_MIN + 1)) + PASSIVE_1_EXTRA_DMG;
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                int actual = Math.min(dmg, target.getCurrentHp());
-                target.takeDamage(dmg);
+                DamageResult result = ctx.owner.calculateTrueDamage(dmg);
+                if (result.isMiss) return;
+                int actual = Math.min(result.amount, target.getCurrentHp());
+                target.takeDamage(result.amount);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
                         actual + " random True Damage", actual, false);
                 ctx.battle.checkEndPublic();
@@ -84,11 +87,11 @@ public class Kaizen extends Character {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                int actual = Math.min(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG, target.getCurrentHp());
-                target.takeDamage(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG);
-                ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " True Damage",
-                        actual, false);
+                DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG);
+                if (result.isMiss) return;
+                int actual = Math.min(result.amount, target.getCurrentHp());
+                target.takeDamage(result.amount);
+                ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };

@@ -7,22 +7,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Substat pool (all possible types and their possible values):
- *   CRIT_RATE    : 4%, 8%, 12%, 16%
- *   CRIT_DAMAGE  : 8%, 16%, 24%, 32%
- *   ATK          : 12, 24, 36, 48
- *   ATK_PERCENT  : 8%, 16%, 24%, 32%
- *   DEF          : 4, 8, 12, 16
- *   DEF_PERCENT  : 3%, 6%, 9%, 12%
- *   HP           : 48, 96, 144, 192
- *   HP_PERCENT   : 4%, 8%, 12%, 16%
- *   ACCURACY     : 3%, 6%, 9%, 12%
- *
- * Usage:
- *   Artifact a = Artifact.generateRandom();   // farmed from a domain
- *   character.equipArtifact(0, a);            // slot 0-3
- */
 public class Artifact {
 
     // ── Substat pool ─────────────────────────────────────────────────────────
@@ -36,7 +20,8 @@ public class Artifact {
                     StatType.DEF_PERCENT, new double[]{ 0.03, 0.06, 0.09, 0.12 },
                     StatType.HP,          new double[]{ 48,   96,   144,  192  },
                     StatType.HP_PERCENT,  new double[]{ 0.04, 0.08, 0.12, 0.16 },
-                    StatType.ACCURACY,    new double[]{ 0.01, 0.02, 0.03, 0.04 }
+                    StatType.ACCURACY,    new double[]{ 0.01, 0.02, 0.03, 0.04 },
+                    StatType.DAMAGE_BONUS, new double[]{ 0.04, 0.08, 0.12, 0.16 }
             );
 
     private static final StatType[] ALL_TYPES = SUBSTAT_POOL.keySet().toArray(new StatType[0]);

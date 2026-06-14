@@ -46,6 +46,14 @@ public abstract class Entity {
         return (int)(baseDamage * (1.0 + getDamageBonus()));
     }
 
+    public DamageResult calculateTrueDamage(int baseDamage) {
+        if (Math.random() >= getAccuracy()) {
+            return new DamageResult(0, false, true);   // miss
+        }
+        int dmg = applyDamageBonus(baseDamage);
+        return new DamageResult(dmg, false, false);
+    }
+
     public void takeDamage(int amount) {
         currentHp = Math.max(0, currentHp - amount);
     }
