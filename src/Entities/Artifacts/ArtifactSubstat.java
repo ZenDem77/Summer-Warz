@@ -15,10 +15,11 @@ public record ArtifactSubstat(StatType type, double value) {
             case HP          -> "HP";
             case HP_PERCENT  -> "HP%";
             case ACCURACY    -> "Accuracy";
+            case DAMAGE_BONUS -> "DMG Bonus";
         };
 
         boolean isPercent = switch (type) {
-            case CRIT_RATE, CRIT_DAMAGE, ATK_PERCENT, DEF_PERCENT, HP_PERCENT, ACCURACY -> true;
+            case CRIT_RATE, CRIT_DAMAGE, ATK_PERCENT, DEF_PERCENT, HP_PERCENT, ACCURACY, DAMAGE_BONUS -> true;
             default -> false;
         };
 

@@ -160,6 +160,11 @@ public abstract class Character extends Entity {
     }
 
     @Override
+    public double getDamageBonus() {
+        return super.getDamageBonus() + getArtifactSubstatTotal(StatType.DAMAGE_BONUS);
+    }
+
+    @Override
     public int getDefense() {
         int    baseDef    = super.getDefense();
         double defPercent = getArtifactSubstatTotal(StatType.DEF_PERCENT);
@@ -183,10 +188,11 @@ public abstract class Character extends Entity {
     // ── Generic stat bonus helpers ────────────────────────────────────────────
     public void applyStatBonus(StatType type, double value) {
         switch (type) {
-            case CRIT_RATE   -> addCritRate(value);
-            case CRIT_DAMAGE -> addCritDamage(value);
-            case ACCURACY    -> addAccuracy(value);
-            case DEF         -> defense += (int) value;
+            case CRIT_RATE    -> addCritRate(value);
+            case CRIT_DAMAGE  -> addCritDamage(value);
+            case ACCURACY     -> addAccuracy(value);
+            case DAMAGE_BONUS -> addDamageBonus(value);
+            case DEF          -> defense += (int) value;
             case HP          -> {
                 maxHp     += (int) value;
                 currentHp  = Math.min(currentHp + (int) value, maxHp);
@@ -197,10 +203,11 @@ public abstract class Character extends Entity {
 
     public void removeStatBonus(StatType type, double value) {
         switch (type) {
-            case CRIT_RATE   -> critRate   -= value;
-            case CRIT_DAMAGE -> critDamage -= value;
-            case ACCURACY    -> accuracy   -= value;
-            case DEF         -> defense    -= (int) value;
+            case CRIT_RATE    -> critRate    -= value;
+            case CRIT_DAMAGE  -> critDamage  -= value;
+            case ACCURACY     -> accuracy    -= value;
+            case DAMAGE_BONUS -> damageBonus -= value;
+            case DEF          -> defense     -= (int) value;
             case HP          -> {
                 maxHp     -= (int) value;
                 currentHp  = Math.min(currentHp, maxHp);
@@ -251,6 +258,7 @@ public abstract class Character extends Entity {
         String base = name + "\nLevel: " + level + "\nHp: " + getMaxHp() + "\nAtk: " + getEffectiveAtk() +
                       "\nDef: " + getDefense() + "\nCrit Rate: " + (getCritRate() * 100) + "%" +
                       "\nCrit Damage: " + (getCritDamage() * 100) + "%" +
+                      "\nDamage Bonus: " + (getDamageBonus() * 100) + "%" +
                       "\nAccuracy: " + (getAccuracy() * 100) + "%";
         return base;
     }

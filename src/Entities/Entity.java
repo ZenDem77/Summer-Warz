@@ -15,6 +15,7 @@ public abstract class Entity {
     protected double critRate;    // e.g. 0.05 = 5%
     protected double critDamage;  // e.g. 1.50 = x1.5 on crit
     protected double accuracy;    // e.g. 0.90 = 90% hit chance
+    protected double damageBonus; // e.g. 0.15 = +15% damage, separate multiplier from critDamage
 
     public Entity(String name, int maxHp, int attack, int defense, int attackSpeed,
                   double critRate, double critDamage, double accuracy) {
@@ -35,9 +36,14 @@ public abstract class Entity {
         }
         boolean crit = Math.random() < getCritRate();
         int     atk  = getEffectiveAtk();
-        double  raw  = crit ? atk + (atk * getCritDamage()) : atk;
+        double  critMultiplier = crit ? (1.0 + getCritDamage()) : 1.0;
+        double  raw  = atk * critMultiplier * (1.0 + getDamageBonus());
         int     dmg  = Math.max(1, (int) raw - defender.getDefense());
         return new DamageResult(dmg, crit, false);
+    }
+
+    public int applyDamageBonus(int baseDamage) {
+        return (int)(baseDamage * (1.0 + getDamageBonus()));
     }
 
     public void takeDamage(int amount) {
@@ -68,12 +74,14 @@ public abstract class Entity {
     public double getCritRate()    { return critRate; }
     public double getCritDamage()  { return critDamage; }
     public double getAccuracy()    { return accuracy; }
+    public double getDamageBonus() { return damageBonus; }
     public double getHpPercent()   { return (double) currentHp / getMaxHp(); }
 
     // ── Crit stat modifiers (called by weapons/items) ─────────────────────────
     public void addCritRate(double bonus)   { critRate   += bonus; }
     public void addCritDamage(double bonus) { critDamage += bonus; }
     public void addAccuracy(double bonus)   { accuracy   += bonus; }
+    public void addDamageBonus(double bonus){ damageBonus += bonus; }
 
     @Override
     public String toString() {
