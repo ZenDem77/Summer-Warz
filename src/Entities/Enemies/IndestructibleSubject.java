@@ -8,7 +8,7 @@ import java.util.Set;
 
 public class IndestructibleSubject extends Enemy implements Shielded {
 
-    private static final double CRIT_RATE       = 0.75;
+    private static final double CRIT_RATE       = 0.90;
     private static final double CRIT_DAMAGE     = 1.80;
     private static final int    SHIELD_INTERVAL = 4000;  // ms between shield grants
 

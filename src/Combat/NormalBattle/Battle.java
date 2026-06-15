@@ -25,7 +25,7 @@ public class Battle implements IBattle {
         void onPlayerAttack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onEnemyAttack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onPassive(String logEntry, Entity owner, int amount, boolean isHeal);
-        /** Fired when the active fighter on a side changes (next fighter enters). */
+        void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName);
         void onFighterEnter(boolean isPlayer, Entity fighter, int remaining);
         void onBattleEnd(BattleState result);
     }
@@ -349,6 +349,12 @@ public class Battle implements IBattle {
                 + " — +" + amount + " shield" + total;
         // isHeal=true for green popup; does NOT touch enemyHpPool
         for (BattleListener l : listeners) l.onPassive(log, owner, amount, true);
+    }
+
+    @Override
+    public void notifyPassiveMiss(Entity owner, Entity target, String passiveName) {
+        String log = "[" + passiveName + "] " + owner.getName() + "'s attack missed " + target.getName() + "!";
+        for (BattleListener l : listeners) l.onPassiveMiss(log, owner, target, passiveName);
     }
 
     @Override

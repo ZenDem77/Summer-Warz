@@ -23,7 +23,7 @@ public class Zed extends Character {
     private static final int PASSIVE_3_INTERVAL_MS  = 550;
 
     public Zed() {
-        super("Zed", 220, 27, 5, 400, 0.05, 0.50, 1);
+        super("Zed", 220, 27, 5, 400, 0.05, 0.50, 30);
     }
 
     // ── Passive slots ─────────────────────────────────────────────────────────
@@ -47,12 +47,10 @@ public class Zed extends Character {
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG);
-                if (result.isMiss) return;
+                if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int actual = Math.min(result.amount, target.getCurrentHp());
                 target.takeDamage(result.amount);
-                ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " True Damage",
-                        actual, false);
+                ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
@@ -68,12 +66,10 @@ public class Zed extends Character {
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG);
-                if (result.isMiss) return;
+                if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int actual = Math.min(result.amount, target.getCurrentHp());
                 target.takeDamage(result.amount);
-                ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " True Damage",
-                        actual, false);
+                ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
@@ -94,6 +90,8 @@ public class Zed extends Character {
                     target.takeDamage(result.amount);
                     ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
                     ctx.battle.checkEndPublic();
+                } else {
+                    ctx.battle.notifyPassiveMiss(ctx.owner, target, getName());
                 }
                 if (ctx.owner.isAlive()) {
                     int before = ctx.owner.getCurrentHp();

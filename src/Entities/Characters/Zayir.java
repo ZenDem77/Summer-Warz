@@ -24,7 +24,7 @@ public class Zayir extends Character {
     private static final int PASSIVE_3_ATK_BONUS = 50;
 
     public Zayir() {
-        super("Zayir", 250, 50, 3, 4000, 0.05, 0.50, 1);
+        super("Zayir", 250, 50, 3, 4000, 0.05, 0.50, 30);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class Zayir extends Character {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 int dmg = PASSIVE_1_FLAT_DAMAGE + (int) (PASSIVE_1_ATK_PERCENT * ctx.owner.getEffectiveAtk());
                 DamageResult result = ctx.owner.calculateTrueDamage(dmg);
-                if (result.isMiss) return;
+                if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int actual = Math.min(result.amount, target.getCurrentHp());
                 target.takeDamage(result.amount);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),

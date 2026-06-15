@@ -179,16 +179,7 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
         setPreferredSize(new Dimension(W, H));
         setLayout(null);
 
-        BufferedImage loadedBg;
-        try {
-            String path = floor.isBoss()
-                    ? "/NormalFloorBg.png"
-                    : "/NormalFloorBg.png";
-            loadedBg = javax.imageio.ImageIO.read(getClass().getResource(path));
-        } catch (Exception e) {
-            loadedBg = makePlaceholderBg();
-        }
-        bgImage = loadedBg;
+        bgImage = makePlaceholderBg();
         battle.getPlayerTeam().forEach(c -> spriteCache.put(c, makePlaceholderSprite(PLAYER_COL, c.getName().substring(0, 1))));
         battle.getEnemyTeam() .forEach(e -> spriteCache.put(e, makePlaceholderSprite(ENEMY_COL,  e.getName().substring(0, 1))));
 
@@ -378,6 +369,16 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     @Override
+    public void onPassiveMiss(String log, Entity owner, Entity target, String passiveName) {
+        SwingUtilities.invokeLater(() -> {
+            // Popup appears on the target (the one who avoided the hit) —
+            // same convention as showDmgPopup/spawnMissPopup for normal attacks.
+            boolean onPlayer = (owner != battle.getActivePlayer());
+            spawnMissPopup(onPlayer);
+        });
+    }
+
+    @Override
     public void onFighterEnter(boolean isPlayer, Entity fighter, int remaining) {
         SwingUtilities.invokeLater(() -> {
             stopCombatTimers();
@@ -415,15 +416,8 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
 
     private void showDmgPopup(boolean onPlayer, int dmg, boolean isCrit) {
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX, onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
-        if (dmg <= 0) {
-            // Shield absorbed the entire hit — show BLOCK in blue
-            floatingTexts.add(new TowerBattlePanel.FloatingText("BLOCK", sp.x + SPRITE_W / 2f, sp.y - 10,
-                    false, false, true, false, false));
-            return;
-        }
-        String txt = "-" + dmg + (isCrit ? "!" : "");
-        floatingTexts.add(new TowerBattlePanel.FloatingText(txt, sp.x + SPRITE_W / 2f, sp.y - 10,
-                isCrit, false, false, false, false));
+        floatingTexts.add(new FloatingText("-" + dmg + (isCrit ? "!" : ""),
+                sp.x + SPRITE_W / 2f, sp.y - 10, isCrit, false, false, false, false));
     }
 
     private void spawnMissPopup(boolean onPlayer) {

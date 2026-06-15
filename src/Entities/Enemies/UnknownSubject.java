@@ -7,7 +7,7 @@ import Entities.PassiveHandler.*;
 
 public class UnknownSubject extends Enemy {
 
-    private static final double CRIT_RATE   = 0.80;
+    private static final double CRIT_RATE   = 0.90;
     private static final double CRIT_DAMAGE = 2.00;
 
     private final int tier;
@@ -60,7 +60,7 @@ public class UnknownSubject extends Enemy {
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 DamageResult result = ctx.owner.calculateTrueDamage(dmg);
-                if (result.isMiss) return;
+                if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int actual = Math.min(result.amount, target.getCurrentHp());
                 target.takeDamage(result.amount);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);

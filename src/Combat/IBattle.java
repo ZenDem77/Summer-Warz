@@ -24,4 +24,6 @@ public interface IBattle {
     void checkEndPublic();
 
     void notifyShield(Entity owner, String passiveName, int amount);
+
+    void notifyPassiveMiss(Entity owner, Entity target, String passiveName);
 }

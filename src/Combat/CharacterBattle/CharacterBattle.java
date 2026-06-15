@@ -17,6 +17,7 @@ public class CharacterBattle implements IBattle {
         void onFighter1Attack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onFighter2Attack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onPassive(String logEntry, Entity owner, int amount, boolean isHeal);
+        void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName);
         void onBattleEnd(BattleState result);
     }
 
@@ -167,6 +168,12 @@ public class CharacterBattle implements IBattle {
         String log = "[" + passiveName + "] " + owner.getName()
                 + " — +" + amount + " shield" + total;
         for (BattleListener l : listeners) l.onPassive(log, owner, amount, true);
+    }
+
+    @Override
+    public void notifyPassiveMiss(Entity owner, Entity target, String passiveName) {
+        String log = "[" + passiveName + "] " + owner.getName() + "'s attack missed " + target.getName() + "!";
+        for (BattleListener l : listeners) l.onPassiveMiss(log, owner, target, passiveName);
     }
 
     @Override
