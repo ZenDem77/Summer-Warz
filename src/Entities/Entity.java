@@ -85,6 +85,9 @@ public abstract class Entity {
     public double getDamageBonus() { return damageBonus; }
     public double getHpPercent()   { return (double) currentHp / getMaxHp(); }
 
+    // ── Setters ───────────────────────────────────────────────────────────────
+    public void setAttackSpeed(int attackSpeed) { this.attackSpeed = attackSpeed; }
+
     // ── Crit stat modifiers (called by weapons/items) ─────────────────────────
     public void addCritRate(double bonus)   { critRate   += bonus; }
     public void addCritDamage(double bonus) { critDamage += bonus; }

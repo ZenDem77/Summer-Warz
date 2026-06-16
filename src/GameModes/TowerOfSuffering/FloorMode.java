@@ -175,7 +175,7 @@ public class FloorMode {
         f.add(new Floor(14, () -> List.of(new IndestructibleSubject(2), new UnknownSubject(2), new ExperimentalSubject(2))));
 
         // ── Floor 15 — ★ BOSS ────────────────────────────────────────────────
-        f.add(new Floor(15, () -> List.of( /* TODO: add boss enemies for floor 15 */ )));
+        f.add(new Floor(15, () -> List.of(new Lynx())));
 
         // ── Floors 16–19 ──────────────────────────────────────────────────────
         f.add(new Floor(16, () -> List.of( /* TODO: add enemies for floor 16 */ )));

@@ -38,7 +38,7 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
 
     // ── Fighter geometry ──────────────────────────────────────────────────────
     private static final double ISO_SCALE      = 0.55;
-    private static final int    GROUND_BASE    = 530;
+    private static final int    GROUND_BASE    = 580;
     private static final int    SPRITE_W       = 72;
     private static final int    SPRITE_H       = 90;
     private static final int    ENGAGE_DIST    = 110;
@@ -280,11 +280,28 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
             tickIntro();
             if (approaching) tickApproach();
             if (!approaching && combatStarted && !waitingForNext) bobTick++;
+            if (!approaching && combatStarted && !waitingForNext) syncAttackTimers();
         }
         if (playerFlashing && ++playerFlashTick > HIT_FLASH_MS / TICK_MS) { playerFlashing = false; playerFlashTick = 0; }
         if (enemyFlashing  && ++enemyFlashTick > HIT_FLASH_MS / TICK_MS)  { enemyFlashing  = false; enemyFlashTick  = 0; }
         floatingTexts.removeIf(ft -> !ft.tick());
         repaint();
+    }
+
+    /**
+     * Keeps the running attack Timers in sync with each fighter's CURRENT
+     * attack speed. Needed for passives like Lynx's "shield break → faster
+     * attacks" which call Entity.setAttackSpeed() mid-battle.
+     */
+    private void syncAttackTimers() {
+        if (playerAttackTimer != null) {
+            int currentSpeed = battle.getActivePlayer().getAttackSpeed();
+            if (playerAttackTimer.getDelay() != currentSpeed) playerAttackTimer.setDelay(currentSpeed);
+        }
+        if (enemyAttackTimer != null) {
+            int currentSpeed = battle.getActiveEnemy().getAttackSpeed();
+            if (enemyAttackTimer.getDelay() != currentSpeed) enemyAttackTimer.setDelay(currentSpeed);
+        }
     }
 
     // ── Intro ─────────────────────────────────────────────────────────────────
@@ -426,6 +443,12 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
 
     private void showDmgPopup(boolean onPlayer, int dmg, boolean isCrit) {
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX, onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
+        if (dmg <= 0) {
+            // Shield absorbed the entire hit — show BLOCK in blue
+            floatingTexts.add(new FloatingText("BLOCK", sp.x + SPRITE_W / 2f, sp.y - 10,
+                    false, false, true, false, false));
+            return;
+        }
         floatingTexts.add(new FloatingText("-" + dmg + (isCrit ? "!" : ""),
                 sp.x + SPRITE_W / 2f, sp.y - 10, isCrit, false, false, false, false));
     }
