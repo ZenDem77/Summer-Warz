@@ -2,6 +2,7 @@ package Combat;
 
 import Combat.CharacterBattle.*;
 import Combat.NormalBattle.*;
+import Economy.Wallet;
 import Entities.Artifacts.Artifact;
 import Entities.Character;
 import Entities.Characters.*;
@@ -91,8 +92,11 @@ public class BattleMainTester {
 
             System.out.println(zayir.getSummary());
 
+            // ── Player wallet — receives floor rewards as floors are cleared ──
+            Wallet wallet = new Wallet();
+
             // ── Create FloorMode ──────────────────────────────────────────────
-            FloorMode mode = new FloorMode(team);
+            FloorMode mode = new FloorMode(team, wallet);
 
             mode.addListener(new FloorMode.FloorModeListener() {
                 @Override public void onFloorStart(Floor floor) {
@@ -100,6 +104,9 @@ public class BattleMainTester {
                 }
                 @Override public void onFloorComplete(int floorNumber, boolean wasBoss) {
                     System.out.println("✔ Floor " + floorNumber + " cleared" + (wasBoss ? " [BOSS]" : "") + "!");
+                }
+                @Override public void onFloorReward(int gold, int elixir) {
+                    System.out.println("    +" + gold + " Gold   +" + elixir + " Elixir   (Wallet: " + wallet + ")");
                 }
                 @Override public void onModeComplete() {
                     System.out.println("🏆 All defined floors cleared!");
@@ -165,7 +172,7 @@ public class BattleMainTester {
             @Override public void onPlayerAttack(String log, int dmg, boolean crit, boolean miss) {}
             @Override public void onEnemyAttack (String log, int dmg, boolean crit, boolean miss) {}
             @Override public void onPassive(String log, Entities.Entity owner, int amt, boolean heal) {}
-            @Override public void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName){}
+            @Override public void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName) {}
             @Override public void onFighterEnter(boolean isPlayer, Entities.Entity fighter, int remaining) {}
         });
 

@@ -9,6 +9,47 @@ import Entities.Enemy;
 import java.util.ArrayList;
 import java.util.List;
 
+import Economy.Currency;
+import Economy.FloorRewardTable;
+import Economy.Wallet;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * FloorMode — logic layer for the floor-climbing game mode.
+ *
+ * The player climbs 100 floors fighting enemies. Every 5th floor is a boss.
+ * Character HP carries over between floors — there is no rest between fights.
+ *
+ * ── How to connect to UI later ─────────────────────────────────────────────
+ *
+ *  1. Construct:   FloorMode mode = new FloorMode(playerTeam);
+ *  2. Subscribe:   mode.addListener(yourFloorModeListener);
+ *  3. Start:       Battle battle = mode.startCurrentFloor();
+ *  4. Wire battle: battle.addListener(yourBattleListener);
+ *                  yourGamePanel.showPanel(new BattlePanel(battle));
+ *  5. On win:      call mode.onBattleWon()  → listener fires onFloorComplete / onModeComplete
+ *  6. On loss:     call mode.onBattleLost() → listener fires onGameOver
+ *
+ *  The BattlePanel already calls battle.stop() on end; FloorMode does not
+ *  need to manage Battle internals — only its own state.
+ *
+ * ── Floor layout ───────────────────────────────────────────────────────────
+ *
+ *  Floors  1– 4  : normal
+ *  Floor   5     : BOSS
+ *  Floors  6– 9  : normal
+ *  Floor  10     : BOSS
+ *  … (pattern repeats every 5 floors up to 100)
+ *
+ * ── Package suggestion ─────────────────────────────────────────────────────
+ *  Place in: src/GameModes/FloorMode.java
+ *  Add at top: package GameModes;
+ *  Then add imports for Combat.NormalBattle.Battle,
+ *               Entities.Character, Entities.Enemy,
+ *               Entities.Enemies.Phainon, Entities.Enemies.Hanzo, etc.
+ */
 public class FloorMode {
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -41,6 +82,13 @@ public class FloorMode {
         void onFloorComplete(int floorNumber, boolean wasBoss);
 
         /**
+         * Fired right after onFloorComplete with the Gold/Elixir granted for
+         * this floor (see Economy.FloorRewardTable). Use this to show a
+         * "+50 Gold  +10 Elixir" popup on the floor-cleared screen.
+         */
+        void onFloorReward(int gold, int elixir);
+
+        /**
          * Fired when the player clears all 100 floors.
          */
         void onModeComplete();
@@ -59,12 +107,13 @@ public class FloorMode {
     private       int                   currentFloorIndex = 0;
     private       State                 state             = State.IDLE;
     private final List<FloorModeListener> listeners       = new ArrayList<>();
+    private final Wallet                 wallet;
 
     /** Maximum team size enforced here as a safety guard (mirrors Battle). */
     public static final int MAX_TEAM_SIZE = Battle.MAX_PLAYER_TEAM_SIZE;
 
     // ── Constructor ───────────────────────────────────────────────────────────
-    public FloorMode(List<Character> playerTeam) {
+    public FloorMode(List<Character> playerTeam, Wallet wallet) {
         if (playerTeam == null || playerTeam.isEmpty())
             throw new IllegalArgumentException("Player team cannot be empty.");
         if (playerTeam.size() > MAX_TEAM_SIZE)
@@ -72,10 +121,16 @@ public class FloorMode {
         long distinct = playerTeam.stream().distinct().count();
         if (distinct < playerTeam.size())
             throw new IllegalArgumentException("Player team cannot contain duplicate characters.");
+        if (wallet == null)
+            throw new IllegalArgumentException("Wallet cannot be null.");
 
         this.playerTeam = new ArrayList<>(playerTeam);
         this.floors     = buildFloors();
+        this.wallet     = wallet;
     }
+
+    /** The player's wallet — also accessible directly if you constructed it externally. */
+    public Wallet getWallet() { return wallet; }
 
     // ── Listener management ───────────────────────────────────────────────────
 
@@ -115,6 +170,12 @@ public class FloorMode {
         state = State.FLOOR_COMPLETE;
 
         for (FloorModeListener l : listeners) l.onFloorComplete(completedFloor, wasBoss);
+
+        // ── Grant Gold/Elixir reward for clearing this floor ──────────────────
+        FloorRewardTable.Reward reward = FloorRewardTable.getReward(completedFloor);
+        if (reward.gold() > 0)   wallet.add(Currency.GOLD,   reward.gold());
+        if (reward.elixir() > 0) wallet.add(Currency.ELIXIR, reward.elixir());
+        for (FloorModeListener l : listeners) l.onFloorReward(reward.gold(), reward.elixir());
 
         currentFloorIndex++;
         if (currentFloorIndex >= floors.size()) {
