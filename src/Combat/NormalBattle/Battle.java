@@ -5,7 +5,6 @@ import Combat.IBattle;
 import Entities.*;
 import Entities.Character;
 import Entities.PassiveHandler.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +24,9 @@ public class Battle implements IBattle {
         void onPlayerAttack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onEnemyAttack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onPassive(String logEntry, Entity owner, int amount, boolean isHeal);
+        /** Fired when a passive's true-damage attack misses (accuracy roll failed). */
         void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName);
+        /** Fired when the active fighter on a side changes (next fighter enters). */
         void onFighterEnter(boolean isPlayer, Entity fighter, int remaining);
         void onBattleEnd(BattleState result);
     }
@@ -50,6 +51,13 @@ public class Battle implements IBattle {
     private final List<Passive> playerPassives = new ArrayList<>();
     private final List<Passive> enemyPassives  = new ArrayList<>();
     private final List<javax.swing.Timer> passiveTimers = new ArrayList<>();
+
+    // ── Lifecycle tracking ─────────────────────────────────────────────────────
+    // Tracks which fighter (per side) most recently received onBattleStart.
+    // Prevents onBattleStart from re-firing for a fighter that is STILL
+    // active, just because the OPPOSING side's fighter changed.
+    private Character lastStartedPlayer = null;
+    private Enemy      lastStartedEnemy  = null;
 
     // ── Constructors ──────────────────────────────────────────────────────────
 
@@ -126,6 +134,8 @@ public class Battle implements IBattle {
         damageDealt.clear();
         playerTeam.forEach(c -> damageDealt.put(c, 0));
         enemyHpPool = enemyTeam.stream().mapToInt(Enemy::getMaxHp).sum();
+        lastStartedPlayer = null;
+        lastStartedEnemy  = null;
         state = BattleState.APPROACHING;
     }
 
@@ -134,7 +144,7 @@ public class Battle implements IBattle {
         if (state != BattleState.APPROACHING) return;
         state = BattleState.ONGOING;
         collectPassives();
-        fireLifecycle(PassiveEvent.BATTLE_START);
+        fireBattleStartForNewFighters();
         startTickTimers();
     }
 
@@ -243,15 +253,27 @@ public class Battle implements IBattle {
         if (ep != null) enemyPassives.add(ep);
     }
 
-    private void fireLifecycle(PassiveEvent event) {
-        Entity p = getActivePlayer(), e = getActiveEnemy();
-        for (Passive pp : playerPassives) {
-            if (event == PassiveEvent.BATTLE_START) pp.onBattleStart(p, this);
-            else if (event == PassiveEvent.BATTLE_END) pp.onBattleEnd(p, this);
+    /**
+     * Fires onBattleStart for the CURRENTLY active player and/or enemy —
+     * but ONLY for whichever side's active fighter differs from the last
+     * fighter that already received onBattleStart this battle session.
+     *
+     * This is what stops passives like Lynx's "shield once per battle"
+     * from re-triggering just because the OPPOSING side's fighter rotated
+     * in (e.g. the player's next character entering after the previous
+     * one died) — Lynx's own fighter never changed, so he should not be
+     * treated as "newly entering" again.
+     */
+    private void fireBattleStartForNewFighters() {
+        Character currentPlayer = getActivePlayer();
+        if (currentPlayer != lastStartedPlayer) {
+            for (Passive p : playerPassives) p.onBattleStart(currentPlayer, this);
+            lastStartedPlayer = currentPlayer;
         }
-        for (Passive ep : enemyPassives) {
-            if (event == PassiveEvent.BATTLE_START) ep.onBattleStart(e, this);
-            else if (event == PassiveEvent.BATTLE_END) ep.onBattleEnd(e, this);
+        Enemy currentEnemy = getActiveEnemy();
+        if (currentEnemy != lastStartedEnemy) {
+            for (Passive p : enemyPassives) p.onBattleStart(currentEnemy, this);
+            lastStartedEnemy = currentEnemy;
         }
     }
 
@@ -288,7 +310,10 @@ public class Battle implements IBattle {
 
     private void checkEnd() {
         if (!getActiveEnemy().isAlive()) {
-            fireLifecycle(PassiveEvent.BATTLE_END);
+            // The enemy's active fighter died — clean up ONLY its own passives.
+            // The player's fighter is still alive and still fighting, so its
+            // onBattleEnd must NOT fire here.
+            for (Passive p : enemyPassives) p.onBattleEnd(getActiveEnemy(), this);
             stopPassiveTimers();
             if (enemyIndex + 1 < enemyTeam.size()) {
                 // Next enemy enters
@@ -299,10 +324,13 @@ public class Battle implements IBattle {
                 // Panel will call setNextEngaged() once the approach animation completes
             } else {
                 state = BattleState.PLAYER_WIN;
+                // Battle is truly over — clean up the surviving player fighter's
+                // passives too (e.g. permanent passive ATK bonuses) exactly once.
+                for (Passive p : playerPassives) p.onBattleEnd(getActivePlayer(), this);
                 for (BattleListener l : listeners) l.onBattleEnd(state);
             }
         } else if (!getActivePlayer().isAlive()) {
-            fireLifecycle(PassiveEvent.BATTLE_END);
+            for (Passive p : playerPassives) p.onBattleEnd(getActivePlayer(), this);
             stopPassiveTimers();
             if (playerIndex + 1 < playerTeam.size()) {
                 // Next player fighter enters
@@ -312,6 +340,7 @@ public class Battle implements IBattle {
                     l.onFighterEnter(true, getActivePlayer(), remaining);
             } else {
                 state = BattleState.ENEMY_WIN;
+                for (Passive p : enemyPassives) p.onBattleEnd(getActiveEnemy(), this);
                 for (BattleListener l : listeners) l.onBattleEnd(state);
             }
         }
@@ -320,11 +349,14 @@ public class Battle implements IBattle {
     /**
      * Called by BattlePanel after the new fighter's approach animation completes.
      * Resumes ONGOING state and starts the new fighter's passives.
+     *
+     * Only the side whose fighter actually changed gets onBattleStart fired —
+     * see fireBattleStartForNewFighters().
      */
     public void setNextEngaged() {
         state = BattleState.ONGOING;
         collectPassives();
-        fireLifecycle(PassiveEvent.BATTLE_START);
+        fireBattleStartForNewFighters();
         startTickTimers();
     }
 

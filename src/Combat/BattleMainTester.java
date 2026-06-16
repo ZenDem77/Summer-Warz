@@ -26,7 +26,7 @@ import java.util.List;
 //            Zed zed = new Zed();
 //            Kaizen kaizen = new Kaizen();
 //            Zayir zayir = new Zayir();
-//            List<Entities.Character> team = List.of(kaizen);
+//            List<Entities.Character> team = List.of(kaizen, zed, zayir);
 //
 //            Weapon weaponZ = new IronEdge();
 //            Weapon weaponK = new IronEdge();
@@ -41,14 +41,14 @@ import java.util.List;
 //            Artifact a3 = Artifact.generateRandom();
 //            Artifact a4 = Artifact.generateRandom();
 //
-//            kaizen.equipArtifact(0, a1);
-//            kaizen.equipArtifact(1, a2);
-//            kaizen.equipArtifact(2, a3);
-//            kaizen.equipArtifact(3, a4);
+//            zayir.equipArtifact(0, a1);
+//            zayir.equipArtifact(1, a2);
+//            zayir.equipArtifact(2, a3);
+//            zayir.equipArtifact(3, a4);
 //
-//            System.out.println(kaizen.getSummary());
+//            System.out.println(zayir.getSummary());
 //
-//            List<Enemy> enemies  = List.of(new IndestructibleSubject(10));
+//            List<Enemy> enemies  = List.of(new Lynx(), new Lynx(), new Lynx(), new Lynx());
 //            window.showPanel(new BattlePanel(new Battle(team, enemies)));
 //
 //            // Character vs Character test battle
@@ -67,7 +67,7 @@ public class BattleMainTester {
             Zed zed = new Zed();
             Kaizen kaizen = new Kaizen();
             Zayir zayir = new Zayir();
-            List<Entities.Character> team = List.of(kaizen);
+            List<Entities.Character> team = List.of(kaizen, zed, zayir);
 
             // ── Weapons ───────────────────────────────────────────────────────
             Weapon weaponZ = new IronEdge();
@@ -84,12 +84,12 @@ public class BattleMainTester {
             Artifact a3 = Artifact.generateRandom();
             Artifact a4 = Artifact.generateRandom();
 
-            kaizen.equipArtifact(0, a1);
-            kaizen.equipArtifact(1, a2);
-            kaizen.equipArtifact(2, a3);
-            kaizen.equipArtifact(3, a4);
+            zayir.equipArtifact(0, a1);
+            zayir.equipArtifact(1, a2);
+            zayir.equipArtifact(2, a3);
+            zayir.equipArtifact(3, a4);
 
-            System.out.println(kaizen.getSummary());
+            System.out.println(zayir.getSummary());
 
             // ── Create FloorMode ──────────────────────────────────────────────
             FloorMode mode = new FloorMode(team);
@@ -124,8 +124,8 @@ public class BattleMainTester {
         }
 
         // Guard: floors 11+ have no enemies yet
-        if (mode.getCurrentFloorNumber() > 14) {
-            System.out.println("Floors 14+ not yet populated. Test ends here.");
+        if (mode.getCurrentFloorNumber() > 19) {
+            System.out.println("Floors 20+ not yet populated. Test ends here.");
             return;
         }
 

@@ -11,15 +11,15 @@ import java.util.Set;
 
 public class Lynx extends Enemy implements Shielded {
 
-    private static final int    SHIELD_AMOUNT       = 1000;
-    private static final int    BASE_ATTACK_SPEED   = 1000;
-    private static final int    ENRAGED_ATTACK_SPEED = 600;
+    private static final int    SHIELD_AMOUNT       = 2000;
+    private static final int    BASE_ATTACK_SPEED   = 1200;
+    private static final int    ENRAGED_ATTACK_SPEED = 400;
 
     private int     shieldHp = 0;
     private boolean enraged  = false;   // true once the shield has broken
 
     public Lynx() {
-        super("Lynx", 3000, 17, 10, BASE_ATTACK_SPEED, 0.90, 2.20);
+        super("Lynx", 2200, 17, 10, BASE_ATTACK_SPEED, 0.90, 1.75);
     }
 
     // ── Shielded interface ────────────────────────────────────────────────────

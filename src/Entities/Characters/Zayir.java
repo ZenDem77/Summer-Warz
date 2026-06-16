@@ -165,10 +165,10 @@ public class Zayir extends Character {
     @Override
     public void levelUp() {
         switch (checkLevel()) {
-            case 1 -> { maxHp += 5;  attack += 2; }
-            case 2 -> { maxHp += 7;  attack += 3; }
-            case 3 -> { maxHp += 9;  attack += 4; }
-            case 4 -> { maxHp += 13; attack += 5; defense += 1; }
+            case 1 -> { maxHp += 10;  attack += 2; }
+            case 2 -> { maxHp += 14;  attack += 3; }
+            case 3 -> { maxHp += 18;  attack += 4; }
+            case 4 -> { maxHp += 39; attack += 5; defense += 1; }
         }
     }
 

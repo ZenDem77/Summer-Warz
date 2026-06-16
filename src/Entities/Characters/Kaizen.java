@@ -101,10 +101,10 @@ public class Kaizen extends Character {
     @Override
     public void levelUp() {
         switch (checkLevel()) {
-            case 1 -> { maxHp += 4;  attack += 1; }
-            case 2 -> { maxHp += 6;  attack += 2; }
-            case 3 -> { maxHp += 8;  attack += 3; }
-            case 4 -> { maxHp += 12; attack += 4; defense += 1; }
+            case 1 -> { maxHp += 8;  attack += 1; }
+            case 2 -> { maxHp += 12; attack += 2; }
+            case 3 -> { maxHp += 16; attack += 3; }
+            case 4 -> { maxHp += 36; attack += 4; defense += 1; }
         }
     }
 

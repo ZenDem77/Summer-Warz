@@ -178,10 +178,10 @@ public class FloorMode {
         f.add(new Floor(15, () -> List.of(new Lynx())));
 
         // ── Floors 16–19 ──────────────────────────────────────────────────────
-        f.add(new Floor(16, () -> List.of( /* TODO: add enemies for floor 16 */ )));
-        f.add(new Floor(17, () -> List.of( /* TODO: add enemies for floor 17 */ )));
-        f.add(new Floor(18, () -> List.of( /* TODO: add enemies for floor 18 */ )));
-        f.add(new Floor(19, () -> List.of( /* TODO: add enemies for floor 19 */ )));
+        f.add(new Floor(16, () -> List.of(new IndestructibleSubject(3))));
+        f.add(new Floor(17, () -> List.of(new UnknownSubject(3), new ExperimentalSubject(3))));
+        f.add(new Floor(18, () -> List.of(new IndestructibleSubject(4), new UnknownSubject(4))));
+        f.add(new Floor(19, () -> List.of(new ExperimentalSubject(4), new IndestructibleSubject(4))));
 
         // ── Floor 20 — ★ BOSS ────────────────────────────────────────────────
         f.add(new Floor(20, () -> List.of( /* TODO: add boss enemies for floor 20 */ )));
