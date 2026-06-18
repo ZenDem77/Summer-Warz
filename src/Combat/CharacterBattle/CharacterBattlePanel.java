@@ -22,7 +22,7 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
     // ── Fighter geometry ──────────────────────────────────────────────────────
     private static final double ISO_SCALE     = 0.55;
-    private static final int    GROUND_BASE   = 530;
+    private static final int    GROUND_BASE   = 610;
     private static final int    SPRITE_W      = 72;
     private static final int    SPRITE_H      = 90;
     private static final int    ENGAGE_DIST   = 110;
@@ -149,7 +149,15 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
         f1Sprite = makePlaceholderSprite(F1_COL, battle.getFighter1().getName().substring(0, 1));
         f2Sprite = makePlaceholderSprite(F2_COL, battle.getFighter2().getName().substring(0, 1));
-        bgImage  = makePlaceholderBg();
+
+        BufferedImage loadedBg;
+        try {
+            String path = "/spar_bg.png";
+            loadedBg = javax.imageio.ImageIO.read(getClass().getResource(path));
+        } catch (Exception e) {
+            loadedBg = makePlaceholderBg();
+        }
+        bgImage = loadedBg;
 
         renderTimer = new javax.swing.Timer(TICK_MS, e -> tick());
         renderTimer.start();

@@ -51,8 +51,9 @@ public class Kaizen extends Character {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 DamageResult result = ctx.owner.calculateTrueDamage(dmg);
                 if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
-                int actual = Math.min(result.amount, target.getCurrentHp());
-                target.takeDamage(result.amount);
+                int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                int actual = Math.min(scaled, target.getCurrentHp());
+                target.takeDamage(scaled);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
                         actual + " random True Damage", actual, false);
                 ctx.battle.checkEndPublic();
@@ -89,8 +90,9 @@ public class Kaizen extends Character {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG);
                 if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
-                int actual = Math.min(result.amount, target.getCurrentHp());
-                target.takeDamage(result.amount);
+                int dmg = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                int actual = Math.min(dmg, target.getCurrentHp());
+                target.takeDamage(dmg);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
                 ctx.battle.checkEndPublic();
             }

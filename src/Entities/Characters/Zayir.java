@@ -70,8 +70,9 @@ public class Zayir extends Character {
                 int dmg = PASSIVE_1_FLAT_DAMAGE + (int) (PASSIVE_1_ATK_PERCENT * ctx.owner.getEffectiveAtk());
                 DamageResult result = ctx.owner.calculateTrueDamage(dmg);
                 if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
-                int actual = Math.min(result.amount, target.getCurrentHp());
-                target.takeDamage(result.amount);
+                int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                int actual = Math.min(scaled, target.getCurrentHp());
+                target.takeDamage(scaled);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
                         actual + " true damage", actual, false);
                 ctx.battle.checkEndPublic();
