@@ -4,6 +4,7 @@ import Combat.DamageResult;
 import Entities.Entity;
 import Entities.Character;
 import Entities.PassiveHandler.*;
+import Entities.Sprites.*;
 
 public class Kaizen extends Character {
 
@@ -26,6 +27,17 @@ public class Kaizen extends Character {
 
     public Kaizen() {
         super("Kaizen", 340, 16, 4, 500, 0.05, 0.50, 30);
+    }
+
+    // ── Sprite ────────────────────────────────────────────────────────────────
+    @Override
+    public SpriteSet getSpriteSet() {
+        return new SpriteSet(
+                SpritePaths.KAIZEN_IDLE,
+                SpritePaths.KAIZEN_RUN,
+                SpritePaths.KAIZEN_ATTACK,
+                SpritePaths.KAIZEN_DEAD
+        );
     }
 
     // ── Passive slots ─────────────────────────────────────────────────────────

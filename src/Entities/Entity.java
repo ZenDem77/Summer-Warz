@@ -2,6 +2,7 @@ package Entities;
 
 import Combat.DamageResult;
 import Entities.PassiveHandler.*;
+import Entities.Sprites.*;
 
 public abstract class Entity {
     protected String name;
@@ -68,6 +69,9 @@ public abstract class Entity {
 
     // ── Passive hook ──────────────────────────────────────────────────────────
     public Passive getPassive() { return null; }
+
+    // ── Sprite hook ───────────────────────────────────────────────────────────
+    public SpriteSet getSpriteSet() { return SpriteSet.NONE; }
 
     // ── Effective ATK ─────────────────────────────────────────────────────────
     public int getEffectiveAtk() { return attack; }

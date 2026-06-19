@@ -3,6 +3,8 @@ package Combat.NormalBattle;
 import Entities.Character;
 import Entities.Entity;
 import Entities.PassiveHandler.*;
+import Entities.Sprites.*;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -135,6 +137,8 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     // ── Sprite cache ──────────────────────────────────────────────────────────
     // One placeholder sprite per entity instance (color differs player vs enemy)
     private final Map<Entity, BufferedImage> spriteCache = new HashMap<>();
+    private final Map<Entity, BufferedImage> runSpriteCache = new HashMap<>();
+    private final Map<Entity, BufferedImage> deadSpriteCache = new HashMap<>();
     private final BufferedImage bgImage;
 
     // ── Pending next-fighter state ────────────────────────────────────────────
@@ -151,9 +155,31 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         setLayout(null);
 
         bgImage = makePlaceholderBg();
-        // Pre-generate sprites for every fighter
-        battle.getPlayerTeam().forEach(c -> spriteCache.put(c, makePlaceholderSprite(PLAYER_COL, c.getName().substring(0, 1))));
-        battle.getEnemyTeam().forEach(e -> spriteCache.put(e, makePlaceholderSprite(ENEMY_COL, e.getName().substring(0, 1))));
+        // Pre-generate sprites for every fighter — tries real art first via
+        // SpriteLoader (see SpritePaths.java to set file paths), falling back
+        // to the placeholder shape if no path is set or the file can't be read.
+        battle.getPlayerTeam().forEach(c -> spriteCache.put(c, loadSpriteOrPlaceholder(c, PLAYER_COL)));
+        battle.getEnemyTeam().forEach(e -> spriteCache.put(e, loadSpriteOrPlaceholder(e, ENEMY_COL)));
+        // Dead-pose sprites, where available — used in drawSprite() in place
+        // of the placeholder X-cross overlay when an entity is defeated.
+        battle.getPlayerTeam().forEach(c -> {
+            BufferedImage dead = SpriteLoader.load(c.getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
+            if (dead != null) deadSpriteCache.put(c, dead);
+        });
+        battle.getEnemyTeam().forEach(e -> {
+            BufferedImage dead = SpriteLoader.load(e.getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
+            if (dead != null) deadSpriteCache.put(e, dead);
+        });
+        // Run-pose sprites — used during the slide-in approach phase (see
+        // the `approaching` boolean below), where available.
+        battle.getPlayerTeam().forEach(c -> {
+            BufferedImage run = SpriteLoader.load(c.getSpriteSet().runPath(), SPRITE_W, SPRITE_H);
+            if (run != null) runSpriteCache.put(c, run);
+        });
+        battle.getEnemyTeam().forEach(e -> {
+            BufferedImage run = SpriteLoader.load(e.getSpriteSet().runPath(), SPRITE_W, SPRITE_H);
+            if (run != null) runSpriteCache.put(e, run);
+        });
 
         renderTimer = new javax.swing.Timer(TICK_MS, e -> tick());
         renderTimer.start();
@@ -401,10 +427,10 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
         // Draw active fighters
         drawSprite(g2, battle.getActivePlayer(), playerWorldX, PLAYER_WORLD_Y,
-                spriteCache.get(battle.getActivePlayer()),
+                getCurrentSprite(battle.getActivePlayer()),
                 playerFlashing ? PLAYER_FLASH : null, false);
         drawSprite(g2, battle.getActiveEnemy(), enemyWorldX, ENEMY_WORLD_Y,
-                spriteCache.get(battle.getActiveEnemy()),
+                getCurrentSprite(battle.getActiveEnemy()),
                 enemyFlashing ? ENEMY_FLASH : null, true);
 
         drawHud(g2);
@@ -421,6 +447,11 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
     private void drawSprite(Graphics2D g2, Entity entity, double worldX, double worldY,
                             BufferedImage sprite, Color flashColor, boolean flipX) {
+        // Swap in the dead-pose sprite once the entity is defeated, if one was loaded
+        BufferedImage deadSprite = deadSpriteCache.get(entity);
+        boolean usingDeadSprite = !entity.isAlive() && deadSprite != null;
+        if (usingDeadSprite) sprite = deadSprite;
+
         Point pos = spritePos(worldX, worldY);
         int sx = pos.x;
         int sy = pos.y + (!approaching && entity.isAlive() && !waitingForNextFighter
@@ -438,7 +469,8 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
             g2.fillRect(sx, sy, SPRITE_W, SPRITE_H);
         }
 
-        if (!entity.isAlive()) {
+        // Fallback X-cross overlay — only shown when no dead sprite is available yet
+        if (!entity.isAlive() && !usingDeadSprite) {
             g2.setColor(new Color(255, 255, 255, 200));
             g2.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             int pad = 14;
@@ -787,6 +819,29 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     // ── Placeholder generators ────────────────────────────────────────────────
+
+    /**
+     * Tries to load this entity's idle sprite via SpriteLoader (see
+     * SpritePaths.java to set file paths). Falls back to the generated
+     * placeholder shape if no path is set or the file can't be read.
+     */
+    /**
+     * Picks the sprite to draw this frame: run-pose while the fighter is
+     * sliding in during the approach phase (if a run sprite was loaded),
+     * otherwise the normal idle sprite.
+     */
+    private BufferedImage getCurrentSprite(Entity entity) {
+        if (approaching) {
+            BufferedImage run = runSpriteCache.get(entity);
+            if (run != null) return run;
+        }
+        return spriteCache.get(entity);
+    }
+
+    private BufferedImage loadSpriteOrPlaceholder(Entity entity, Color placeholderColor) {
+        BufferedImage loaded = SpriteLoader.load(entity.getSpriteSet().idlePath(), SPRITE_W, SPRITE_H);
+        return loaded != null ? loaded : makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1));
+    }
 
     private BufferedImage makePlaceholderSprite(Color base, String initial) {
         BufferedImage img = new BufferedImage(SPRITE_W, SPRITE_H, BufferedImage.TYPE_INT_ARGB);

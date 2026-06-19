@@ -5,6 +5,7 @@ import Entities.Character;
 import Entities.Enemy;
 import Entities.Entity;
 import Entities.PassiveHandler.*;
+import Entities.Sprites.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -164,6 +165,8 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
 
     // ── Sprite cache ──────────────────────────────────────────────────────────
     private final Map<Entity, BufferedImage> spriteCache = new HashMap<>();
+    private final Map<Entity, BufferedImage> runSpriteCache = new HashMap<>();
+    private final Map<Entity, BufferedImage> deadSpriteCache = new HashMap<>();
     private final BufferedImage bgImage;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -190,8 +193,24 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
         }
         bgImage = loadedBg;
 
-        battle.getPlayerTeam().forEach(c -> spriteCache.put(c, makePlaceholderSprite(PLAYER_COL, c.getName().substring(0, 1))));
-        battle.getEnemyTeam() .forEach(e -> spriteCache.put(e, makePlaceholderSprite(ENEMY_COL,  e.getName().substring(0, 1))));
+        battle.getPlayerTeam().forEach(c -> spriteCache.put(c, loadSpriteOrPlaceholder(c, PLAYER_COL)));
+        battle.getEnemyTeam() .forEach(e -> spriteCache.put(e, loadSpriteOrPlaceholder(e, ENEMY_COL)));
+        battle.getPlayerTeam().forEach(c -> {
+            BufferedImage dead = SpriteLoader.load(c.getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
+            if (dead != null) deadSpriteCache.put(c, dead);
+        });
+        battle.getEnemyTeam().forEach(e -> {
+            BufferedImage dead = SpriteLoader.load(e.getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
+            if (dead != null) deadSpriteCache.put(e, dead);
+        });
+        battle.getPlayerTeam().forEach(c -> {
+            BufferedImage run = SpriteLoader.load(c.getSpriteSet().runPath(), SPRITE_W, SPRITE_H);
+            if (run != null) runSpriteCache.put(c, run);
+        });
+        battle.getEnemyTeam().forEach(e -> {
+            BufferedImage run = SpriteLoader.load(e.getSpriteSet().runPath(), SPRITE_W, SPRITE_H);
+            if (run != null) runSpriteCache.put(e, run);
+        });
 
         wireMouseInput();
 
@@ -486,9 +505,9 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
         g2.drawImage(bgImage, 0, 0, null);
 
         drawSprite(g2, battle.getActivePlayer(), playerWorldX, PLAYER_WORLD_Y,
-                spriteCache.get(battle.getActivePlayer()), playerFlashing ? PLAYER_FLASH : null, false);
+                getCurrentSprite(battle.getActivePlayer()), playerFlashing ? PLAYER_FLASH : null, false);
         drawSprite(g2, battle.getActiveEnemy(), enemyWorldX, ENEMY_WORLD_Y,
-                spriteCache.get(battle.getActiveEnemy()), enemyFlashing ? ENEMY_FLASH : null, true);
+                getCurrentSprite(battle.getActiveEnemy()), enemyFlashing ? ENEMY_FLASH : null, true);
 
         drawHud(g2);
         drawPlayerRoster(g2);
@@ -505,6 +524,10 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
 
     private void drawSprite(Graphics2D g2, Entity entity, double worldX, double worldY,
                             BufferedImage sprite, Color flashColor, boolean flipX) {
+        BufferedImage deadSprite = deadSpriteCache.get(entity);
+        boolean usingDeadSprite = !entity.isAlive() && deadSprite != null;
+        if (usingDeadSprite) sprite = deadSprite;
+
         Point pos = spritePos(worldX, worldY);
         int sx = pos.x;
         int sy = pos.y + (!approaching && entity.isAlive() && !waitingForNext
@@ -522,7 +545,7 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
             g2.fillRect(sx, sy, SPRITE_W, SPRITE_H);
         }
 
-        if (!entity.isAlive()) {
+        if (!entity.isAlive() && !usingDeadSprite) {
             g2.setColor(new Color(255, 255, 255, 200));
             g2.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             int pad = 14;
@@ -972,6 +995,19 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     // ── Placeholder generators ────────────────────────────────────────────────
+
+    private BufferedImage getCurrentSprite(Entity entity) {
+        if (approaching) {
+            BufferedImage run = runSpriteCache.get(entity);
+            if (run != null) return run;
+        }
+        return spriteCache.get(entity);
+    }
+
+    private BufferedImage loadSpriteOrPlaceholder(Entity entity, Color placeholderColor) {
+        BufferedImage loaded = SpriteLoader.load(entity.getSpriteSet().idlePath(), SPRITE_W, SPRITE_H);
+        return loaded != null ? loaded : makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1));
+    }
 
     private BufferedImage makePlaceholderSprite(Color base, String initial) {
         BufferedImage img = new BufferedImage(SPRITE_W, SPRITE_H, BufferedImage.TYPE_INT_ARGB);

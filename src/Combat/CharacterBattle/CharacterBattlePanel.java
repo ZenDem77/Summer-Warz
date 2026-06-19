@@ -3,6 +3,8 @@ package Combat.CharacterBattle;
 import Entities.Character;
 import Entities.Entity;
 import Entities.PassiveHandler.*;
+import Entities.Sprites.*;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -134,6 +136,10 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     // ── Placeholder sprites ───────────────────────────────────────────────────
     private final BufferedImage f1Sprite;
     private final BufferedImage f2Sprite;
+    private final BufferedImage f1RunSprite;   // null if no run sprite was loaded
+    private final BufferedImage f2RunSprite;
+    private final BufferedImage f1DeadSprite;  // null if no dead sprite was loaded
+    private final BufferedImage f2DeadSprite;
     private final BufferedImage bgImage;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -147,8 +153,12 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
         setPreferredSize(new Dimension(W, H));
         setLayout(null);
 
-        f1Sprite = makePlaceholderSprite(F1_COL, battle.getFighter1().getName().substring(0, 1));
-        f2Sprite = makePlaceholderSprite(F2_COL, battle.getFighter2().getName().substring(0, 1));
+        f1Sprite = loadSpriteOrPlaceholder(battle.getFighter1(), F1_COL);
+        f2Sprite = loadSpriteOrPlaceholder(battle.getFighter2(), F2_COL);
+        f1RunSprite  = SpriteLoader.load(battle.getFighter1().getSpriteSet().runPath(),  SPRITE_W, SPRITE_H);
+        f2RunSprite  = SpriteLoader.load(battle.getFighter2().getSpriteSet().runPath(),  SPRITE_W, SPRITE_H);
+        f1DeadSprite = SpriteLoader.load(battle.getFighter1().getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
+        f2DeadSprite = SpriteLoader.load(battle.getFighter2().getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
 
         BufferedImage loadedBg;
         try {
@@ -328,6 +338,11 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
     // ── Placeholder generators ────────────────────────────────────────────────
 
+    private BufferedImage loadSpriteOrPlaceholder(Entity entity, Color placeholderColor) {
+        BufferedImage loaded = SpriteLoader.load(entity.getSpriteSet().idlePath(), SPRITE_W, SPRITE_H);
+        return loaded != null ? loaded : makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1));
+    }
+
     private BufferedImage makePlaceholderSprite(Color base, String initial) {
         BufferedImage img = new BufferedImage(SPRITE_W, SPRITE_H, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
@@ -392,8 +407,10 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
         g2.drawImage(bgImage, 0, 0, null);
 
-        drawSprite(g2, battle.getFighter1(), f1WorldX, F1_WORLD_Y, f1Sprite, f1Flashing ? F1_FLASH : null, false);
-        drawSprite(g2, battle.getFighter2(), f2WorldX, F2_WORLD_Y, f2Sprite, f2Flashing ? F2_FLASH : null, true);
+        BufferedImage f1Current = (approaching && f1RunSprite != null) ? f1RunSprite : f1Sprite;
+        BufferedImage f2Current = (approaching && f2RunSprite != null) ? f2RunSprite : f2Sprite;
+        drawSprite(g2, battle.getFighter1(), f1WorldX, F1_WORLD_Y, f1Current, f1DeadSprite, f1Flashing ? F1_FLASH : null, false);
+        drawSprite(g2, battle.getFighter2(), f2WorldX, F2_WORLD_Y, f2Current, f2DeadSprite, f2Flashing ? F2_FLASH : null, true);
 
         drawHud(g2);
 
@@ -406,7 +423,10 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     // ── Draw: sprite ──────────────────────────────────────────────────────────
 
     private void drawSprite(Graphics2D g2, Entity entity, double worldX, double worldY,
-                            BufferedImage sprite, Color flashColor, boolean flipX) {
+                            BufferedImage sprite, BufferedImage deadSprite, Color flashColor, boolean flipX) {
+        boolean usingDeadSprite = !entity.isAlive() && deadSprite != null;
+        if (usingDeadSprite) sprite = deadSprite;
+
         Point pos = spriteScreenPos(worldX, worldY);
         int sx = pos.x;
         int sy = pos.y + (!approaching && entity.isAlive()
@@ -424,7 +444,7 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
             g2.fillRect(sx, sy, SPRITE_W, SPRITE_H);
         }
 
-        if (!entity.isAlive()) {
+        if (!entity.isAlive() && !usingDeadSprite) {
             g2.setColor(new Color(255, 255, 255, 200));
             g2.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             int pad = 14;
