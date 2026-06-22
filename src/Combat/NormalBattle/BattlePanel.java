@@ -31,15 +31,19 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     // ── Fighter geometry ──────────────────────────────────────────────────────
     private static final double ISO_SCALE     = 0.55;
     private static final int    GROUND_BASE   = 530;
-    private static final int    SPRITE_W      = 72;
-    private static final int    SPRITE_H      = 90;
-    private static final int    ENGAGE_DIST   = 110;
+    private static final int    BASE_SPRITE_W = 144;
+    private static final int    BASE_SPRITE_H = 180;
+    /** Minimum pixel gap between the two fighters' sprite edges when fully engaged. */
+    private static final int    GAP_PX        = 20;
     private static final int    APPROACH_SPEED = 5;
 
     private static final int PLAYER_START_X = -500;
     private static final int ENEMY_START_X  =  500;
-    private static final int PLAYER_TARGET_X = -ENGAGE_DIST / 2;
-    private static final int ENEMY_TARGET_X  =  ENGAGE_DIST / 2;
+    // Computed dynamically in beginCombat() / setNextEngaged() from each
+    // fighter's actual sprite width, so larger sprites automatically stop
+    // further apart — no overlap regardless of entity size.
+    private int playerTargetX = -55;
+    private int enemyTargetX  =  55;
     private static final int PLAYER_WORLD_Y  = 60;
     private static final int ENEMY_WORLD_Y   = 90;
 
@@ -106,6 +110,23 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     private boolean playerFlashing = false, enemyFlashing = false;
     private int     playerFlashTick = 0,    enemyFlashTick = 0;
 
+    // ── Attack pose ───────────────────────────────────────────────────────────
+    // Briefly shows the attack sprite when an entity performs an attack tick,
+    // then reverts to idle — same timer pattern as the hit-flash above.
+    private static final int ATTACK_POSE_MS = 200;
+    private boolean playerAttacking = false, enemyAttacking = false;
+    private int     playerAttackTick = 0,    enemyAttackTick = 0;
+
+    // ── Frozen display references ───────────────────────────────────────────
+    // During the pause between a fighter dying and the next one sliding in
+    // (waitingForNextFighter), battle.getActivePlayer()/getActiveEnemy()
+    // ALREADY point to the next fighter (Battle.java advances the index
+    // immediately on death). Without this, the dead fighter's sprite would
+    // never actually get drawn — these freeze the displayed entity at its
+    // last known value for the duration of that pause.
+    private Entity displayedPlayer;
+    private Entity displayedEnemy;
+
     // ── Floating text ─────────────────────────────────────────────────────────
     private final java.util.List<FloatingText> floatingTexts = new java.util.ArrayList<>();
 
@@ -138,6 +159,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     // One placeholder sprite per entity instance (color differs player vs enemy)
     private final Map<Entity, BufferedImage> spriteCache = new HashMap<>();
     private final Map<Entity, BufferedImage> runSpriteCache = new HashMap<>();
+    private final Map<Entity, BufferedImage> attackSpriteCache = new HashMap<>();
     private final Map<Entity, BufferedImage> deadSpriteCache = new HashMap<>();
     private final BufferedImage bgImage;
 
@@ -151,6 +173,10 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         this.battle = battle;
         battle.addListener(this);
 
+        // Reset HP/alive state immediately, before any frame ever renders —
+        // see the matching comment in TowerBattlePanel's constructor for why.
+        battle.start();
+
         setPreferredSize(new Dimension(W, H));
         setLayout(null);
 
@@ -163,22 +189,30 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         // Dead-pose sprites, where available — used in drawSprite() in place
         // of the placeholder X-cross overlay when an entity is defeated.
         battle.getPlayerTeam().forEach(c -> {
-            BufferedImage dead = SpriteLoader.load(c.getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
+            BufferedImage dead = SpriteLoader.load(c.getSpriteSet().deadPath(), spriteWidthFor(c), spriteHeightFor(c));
             if (dead != null) deadSpriteCache.put(c, dead);
         });
         battle.getEnemyTeam().forEach(e -> {
-            BufferedImage dead = SpriteLoader.load(e.getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
+            BufferedImage dead = SpriteLoader.load(e.getSpriteSet().deadPath(), spriteWidthFor(e), spriteHeightFor(e));
             if (dead != null) deadSpriteCache.put(e, dead);
         });
         // Run-pose sprites — used during the slide-in approach phase (see
         // the `approaching` boolean below), where available.
         battle.getPlayerTeam().forEach(c -> {
-            BufferedImage run = SpriteLoader.load(c.getSpriteSet().runPath(), SPRITE_W, SPRITE_H);
+            BufferedImage run = SpriteLoader.load(c.getSpriteSet().runPath(), spriteWidthFor(c), spriteHeightFor(c));
             if (run != null) runSpriteCache.put(c, run);
         });
         battle.getEnemyTeam().forEach(e -> {
-            BufferedImage run = SpriteLoader.load(e.getSpriteSet().runPath(), SPRITE_W, SPRITE_H);
+            BufferedImage run = SpriteLoader.load(e.getSpriteSet().runPath(), spriteWidthFor(e), spriteHeightFor(e));
             if (run != null) runSpriteCache.put(e, run);
+        });
+        battle.getPlayerTeam().forEach(c -> {
+            BufferedImage attack = SpriteLoader.load(c.getSpriteSet().attackPath(), spriteWidthFor(c), spriteHeightFor(c));
+            if (attack != null) attackSpriteCache.put(c, attack);
+        });
+        battle.getEnemyTeam().forEach(e -> {
+            BufferedImage attack = SpriteLoader.load(e.getSpriteSet().attackPath(), spriteWidthFor(e), spriteHeightFor(e));
+            if (attack != null) attackSpriteCache.put(e, attack);
         });
 
         renderTimer = new javax.swing.Timer(TICK_MS, e -> tick());
@@ -195,6 +229,9 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
         if (playerFlashing && ++playerFlashTick > HIT_FLASH_MS / TICK_MS) { playerFlashing = false; playerFlashTick = 0; }
         if (enemyFlashing  && ++enemyFlashTick > HIT_FLASH_MS / TICK_MS)  { enemyFlashing  = false; enemyFlashTick  = 0; }
+
+        if (playerAttacking && ++playerAttackTick > ATTACK_POSE_MS / TICK_MS) { playerAttacking = false; playerAttackTick = 0; }
+        if (enemyAttacking  && ++enemyAttackTick > ATTACK_POSE_MS / TICK_MS)  { enemyAttacking  = false; enemyAttackTick  = 0; }
 
         floatingTexts.removeIf(ft -> !ft.tick());
         repaint();
@@ -232,11 +269,34 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     private void beginCombat() {
-        battle.start();
+        // battle.start() already ran in the constructor.
         combatStarted = true;
         approaching   = true;
         playerWorldX  = PLAYER_START_X;
         enemyWorldX   = ENEMY_START_X;
+        computeTargetPositions();
+    }
+
+    /**
+     * Computes where each fighter should stop sliding in, based on their
+     * current sprite widths and a fixed gap between them. Called at the
+     * start of every engagement (initial + each new-fighter entrance) so
+     * a boss entering partway through the battle gets its own wider berth.
+     *
+     * Formula:
+     *   total occupied width = (playerSpriteW + enemySpriteW) / 2 + GAP_PX
+     *   player stops at  -(total / 2)
+     *   enemy  stops at  +(total / 2)
+     *
+     * This guarantees the gap between the two sprites' inner edges
+     * is always exactly GAP_PX, regardless of either sprite's size.
+     */
+    private void computeTargetPositions() {
+        int pW = spriteWidthFor(battle.getActivePlayer());
+        int eW = spriteWidthFor(battle.getActiveEnemy());
+        int halfTotal = (pW / 2 + eW / 2 + GAP_PX) / 2;
+        playerTargetX = -halfTotal;
+        enemyTargetX  =  halfTotal;
     }
 
     // ── Approach ──────────────────────────────────────────────────────────────
@@ -244,8 +304,8 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     private void tickApproach() {
         if (!combatStarted) return;
         boolean pd = false, ed = false;
-        if (playerWorldX < PLAYER_TARGET_X) playerWorldX = Math.min(playerWorldX + APPROACH_SPEED, PLAYER_TARGET_X); else pd = true;
-        if (enemyWorldX  > ENEMY_TARGET_X)  enemyWorldX  = Math.max(enemyWorldX  - APPROACH_SPEED, ENEMY_TARGET_X);  else ed = true;
+        if (playerWorldX < playerTargetX) playerWorldX = Math.min(playerWorldX + APPROACH_SPEED, playerTargetX); else pd = true;
+        if (enemyWorldX  > enemyTargetX)  enemyWorldX  = Math.max(enemyWorldX  - APPROACH_SPEED, enemyTargetX);  else ed = true;
 
         if (pd && ed) {
             approaching = false;
@@ -297,6 +357,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     @Override
     public void onPlayerAttack(String log, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
+            playerAttacking = true; playerAttackTick = 0;
             if (isMiss) spawnMissPopup(false);
             else { enemyFlashing = true; enemyFlashTick = 0; showDmgPopup(false, damage, isCrit); }
         });
@@ -305,6 +366,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     @Override
     public void onEnemyAttack(String log, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
+            enemyAttacking = true; enemyAttackTick = 0;
             if (isMiss) spawnMissPopup(true);
             else { playerFlashing = true; playerFlashTick = 0; showDmgPopup(true, damage, isCrit); }
         });
@@ -331,10 +393,16 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
     @Override
     public void onFighterEnter(boolean isPlayer, Entity fighter, int remaining) {
+        // Set synchronously BEFORE invokeLater so the very next render tick
+        // that fires (before the lambda even runs) already sees waitingForNextFighter=true
+        // and freezes displayedPlayer/displayedEnemy on the dying fighter.
+        // If this were inside the invokeLater, pending render ticks would fire
+        // first and update the displayed entity to the NEW fighter (whose index
+        // Battle.java already advanced to immediately on death), losing the dead
+        // sprite window entirely.
+        waitingForNextFighter = true;
         SwingUtilities.invokeLater(() -> {
-            // Stop attack timers during the transition
             stopCombatTimers();
-            waitingForNextFighter = true;
 
             // Brief pause, then slide the new fighter in from off-screen
             new javax.swing.Timer(NEXT_ENTER_DELAY_MS, e -> {
@@ -344,6 +412,9 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
                 } else {
                     enemyWorldX = ENEMY_START_X;
                 }
+                // Recompute stop positions: the new fighter may be a
+                // different size from the one that just died.
+                computeTargetPositions();
                 approaching = true;
             }) {{ setRepeats(false); start(); }};
         });
@@ -366,38 +437,45 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     // ── Popup helpers ─────────────────────────────────────────────────────────
 
     private void showDmgPopup(boolean onPlayer, int dmg, boolean isCrit) {
+        Entity entity = onPlayer ? getDisplayedPlayer() : getDisplayedEnemy();
+        int spriteW = spriteWidthFor(entity);
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX,
-                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
+                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y, spriteW, spriteHeightFor(entity));
         if (dmg <= 0) {
             // Shield absorbed the entire hit — show BLOCK in blue
-            floatingTexts.add(new FloatingText("BLOCK", sp.x + SPRITE_W / 2f, sp.y - 10,
+            floatingTexts.add(new FloatingText("BLOCK", sp.x + spriteW / 2f, sp.y - 10,
                     false, false, true, false, false));
             return;
         }
         String txt = "-" + dmg + (isCrit ? "!" : "");
-        floatingTexts.add(new FloatingText(txt, sp.x + SPRITE_W / 2f, sp.y - 10,
+        floatingTexts.add(new FloatingText(txt, sp.x + spriteW / 2f, sp.y - 10,
                 isCrit, false, false, false, false));
     }
 
     private void spawnMissPopup(boolean onPlayer) {
+        Entity entity = onPlayer ? getDisplayedPlayer() : getDisplayedEnemy();
+        int spriteW = spriteWidthFor(entity);
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX,
-                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
-        floatingTexts.add(new FloatingText("MISS!", sp.x + SPRITE_W / 2f, sp.y - 10,
+                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y, spriteW, spriteHeightFor(entity));
+        floatingTexts.add(new FloatingText("MISS!", sp.x + spriteW / 2f, sp.y - 10,
                 false, false, false, true, false));
     }
 
     private void spawnPassivePopup(boolean onPlayer, int amount, boolean isHeal) {
+        Entity entity = onPlayer ? getDisplayedPlayer() : getDisplayedEnemy();
+        int spriteW = spriteWidthFor(entity);
+        int spriteH = spriteHeightFor(entity);
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX,
-                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
+                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y, spriteW, spriteH);
         String txt = (isHeal ? "+" : "-") + amount;
         boolean leftAnchored; float sx, sy;
         if (isHeal) {
             leftAnchored = !onPlayer;
-            sx = onPlayer ? sp.x - 8 : sp.x + SPRITE_W + 8;
-            sy = sp.y + SPRITE_H / 2f;
+            sx = onPlayer ? sp.x - 8 : sp.x + spriteW + 8;
+            sy = sp.y + spriteH / 2f;
         } else {
             leftAnchored = false;
-            sx = sp.x + SPRITE_W / 2f;
+            sx = sp.x + spriteW / 2f;
             sy = sp.y - 10;
         }
         floatingTexts.add(new FloatingText(txt, sx, sy, false, isHeal, !isHeal, false, leftAnchored));
@@ -405,10 +483,19 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
     // ── Projection ────────────────────────────────────────────────────────────
 
-    private Point spritePos(double worldX, double worldY) {
+    /**
+     * This entity's sprite box width, scaled by its own getSizeScale()
+     * relative to the base size. Normal entities (scale 1.0) get
+     * BASE_SPRITE_W; a boss with scale 4.0 gets 4x that.
+     */
+    private int spriteWidthFor(Entity entity)  { return (int)(BASE_SPRITE_W * entity.getSizeScale()); }
+    private int spriteHeightFor(Entity entity) { return (int)(BASE_SPRITE_H * entity.getSizeScale()); }
+
+    /** Bottom-center anchor position for a sprite of the given size at this world position. */
+    private Point spritePos(double worldX, double worldY, int spriteW, int spriteH) {
         return new Point(
-                (int)(W / 2.0 + worldX) - SPRITE_W / 2,
-                (int)(GROUND_BASE - worldY * ISO_SCALE) - SPRITE_H);
+                (int)(W / 2.0 + worldX) - spriteW / 2,
+                (int)(GROUND_BASE - worldY * ISO_SCALE) - spriteH);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -425,12 +512,18 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
         g2.drawImage(bgImage, 0, 0, null);
 
-        // Draw active fighters
-        drawSprite(g2, battle.getActivePlayer(), playerWorldX, PLAYER_WORLD_Y,
-                getCurrentSprite(battle.getActivePlayer()),
+        // Draw active fighters — uses getDisplayedPlayer()/getDisplayedEnemy()
+        // rather than battle.getActivePlayer()/getActiveEnemy() directly, so a
+        // fighter that just died stays visible (including its dead sprite)
+        // through the pause before the next fighter slides in. See the
+        // displayedPlayer/displayedEnemy field comments for why this matters.
+        Entity displayPlayer = getDisplayedPlayer();
+        Entity displayEnemy  = getDisplayedEnemy();
+        drawSprite(g2, displayPlayer, playerWorldX, PLAYER_WORLD_Y,
+                getCurrentSprite(displayPlayer, playerAttacking, isPlayerMoving()),
                 playerFlashing ? PLAYER_FLASH : null, false);
-        drawSprite(g2, battle.getActiveEnemy(), enemyWorldX, ENEMY_WORLD_Y,
-                getCurrentSprite(battle.getActiveEnemy()),
+        drawSprite(g2, displayEnemy, enemyWorldX, ENEMY_WORLD_Y,
+                getCurrentSprite(displayEnemy, enemyAttacking, isEnemyMoving()),
                 enemyFlashing ? ENEMY_FLASH : null, true);
 
         drawHud(g2);
@@ -452,30 +545,43 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         boolean usingDeadSprite = !entity.isAlive() && deadSprite != null;
         if (usingDeadSprite) sprite = deadSprite;
 
-        Point pos = spritePos(worldX, worldY);
+        // Every cached sprite (placeholder or loaded) is already sized to
+        // this entity's own box at cache-population time (see
+        // spriteWidthFor/spriteHeightFor), so we read dimensions straight
+        // off the image rather than assuming a single shared size — this is
+        // what lets bosses with getSizeScale() > 1.0 render correctly.
+        int spriteW = sprite.getWidth();
+        int spriteH = sprite.getHeight();
+        // Scale factor relative to the base size — used to keep visual
+        // margins (shadow, X-cross padding, etc.) proportionally consistent
+        // regardless of how big or small this entity's sprite box is.
+        double scale = spriteW / (double) BASE_SPRITE_W;
+
+        Point pos = spritePos(worldX, worldY, spriteW, spriteH);
         int sx = pos.x;
         int sy = pos.y + (!approaching && entity.isAlive() && !waitingForNextFighter
                 ? (int)(Math.sin(bobTick * 0.15 + (flipX ? Math.PI : 0)) * BOB_AMPLITUDE) : 0);
 
         int shadowY = (int)(GROUND_BASE - worldY * ISO_SCALE);
+        int shadowMargin = (int)(8 * scale);
         g2.setColor(new Color(0, 0, 0, 55));
-        g2.fillOval(sx + 8, shadowY - 8, SPRITE_W - 16, 14);
+        g2.fillOval(sx + shadowMargin, shadowY - 8, Math.max(8, spriteW - shadowMargin * 2), 14);
 
-        if (flipX) g2.drawImage(sprite, sx + SPRITE_W, sy, -SPRITE_W, SPRITE_H, null);
-        else       g2.drawImage(sprite, sx, sy, null);
+        if (flipX) g2.drawImage(sprite, sx + spriteW, sy, -spriteW, spriteH, null);
+        else       g2.drawImage(sprite, sx, sy, spriteW, spriteH, null);
 
         if (flashColor != null) {
             g2.setColor(new Color(flashColor.getRed(), flashColor.getGreen(), flashColor.getBlue(), 140));
-            g2.fillRect(sx, sy, SPRITE_W, SPRITE_H);
+            g2.fillRect(sx, sy, spriteW, spriteH);
         }
 
         // Fallback X-cross overlay — only shown when no dead sprite is available yet
         if (!entity.isAlive() && !usingDeadSprite) {
             g2.setColor(new Color(255, 255, 255, 200));
-            g2.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            int pad = 14;
-            g2.drawLine(sx + pad, sy + pad, sx + SPRITE_W - pad, sy + SPRITE_H - pad);
-            g2.drawLine(sx + SPRITE_W - pad, sy + pad, sx + pad, sy + SPRITE_H - pad);
+            g2.setStroke(new BasicStroke((float)(4 * scale), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            int pad = (int)(14 * scale);
+            g2.drawLine(sx + pad, sy + pad, sx + spriteW - pad, sy + spriteH - pad);
+            g2.drawLine(sx + spriteW - pad, sy + pad, sx + pad, sy + spriteH - pad);
             g2.setStroke(new BasicStroke(1));
         }
 
@@ -484,9 +590,9 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         String name = entity.getName();
         int tw = fm.stringWidth(name);
         g2.setColor(new Color(0, 0, 0, 140));
-        g2.fillRoundRect(sx + SPRITE_W / 2 - tw / 2 - 4, shadowY + 2, tw + 8, 14, 6, 6);
+        g2.fillRoundRect(sx + spriteW / 2 - tw / 2 - 4, shadowY + 2, tw + 8, 14, 6, 6);
         g2.setColor(Color.WHITE);
-        g2.drawString(name, sx + SPRITE_W / 2 - tw / 2, shadowY + 13);
+        g2.drawString(name, sx + spriteW / 2 - tw / 2, shadowY + 13);
     }
 
     // ── Draw: HUD ─────────────────────────────────────────────────────────────
@@ -830,8 +936,59 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
      * sliding in during the approach phase (if a run sprite was loaded),
      * otherwise the normal idle sprite.
      */
-    private BufferedImage getCurrentSprite(Entity entity) {
-        if (approaching) {
+    /**
+     * Picks the sprite to draw this frame, in priority order:
+     *   1. Attack pose — briefly shown right after this side's attack tick fires
+     *      (if an attack sprite was loaded; see playerAttacking/enemyAttacking)
+     *   2. Run pose — while sliding in during the approach phase
+     *   3. Idle — the default
+     */
+    /**
+     * Returns the player entity to draw this frame.
+     *
+     * Frozen on the PREVIOUS fighter only during the pause BEFORE the next
+     * fighter starts sliding in (waitingForNextFighter=true, approaching=false)
+     * — this is what shows the dead sprite briefly after a kill. The moment
+     * the slide-in animation actually begins (approaching flips true), this
+     * switches to the new fighter immediately, so its own run sprite gets
+     * selected instead of the previous (dead) fighter's sprite bleeding into
+     * the new fighter's entrance.
+     */
+    private Entity getDisplayedPlayer() {
+        if (!waitingForNextFighter || approaching) displayedPlayer = battle.getActivePlayer();
+        return displayedPlayer;
+    }
+
+    private Entity getDisplayedEnemy() {
+        if (!waitingForNextFighter || approaching) displayedEnemy = battle.getActiveEnemy();
+        return displayedEnemy;
+    }
+
+    /**
+     * Whether the PLAYER side is actually sliding in right now. approaching
+     * alone isn't enough — it's a single flag shared by both sides, so when
+     * only the enemy is re-entering after a kill, approaching is true even
+     * though the player isn't moving at all. Comparing live position against
+     * the target catches this: a side that's already at its target isn't
+     * actually moving, regardless of the shared flag's state.
+     */
+    private boolean isPlayerMoving() { return approaching && playerWorldX != playerTargetX; }
+    private boolean isEnemyMoving()  { return approaching && enemyWorldX  != enemyTargetX;  }
+
+    /**
+     * Picks the sprite to draw this frame, in priority order:
+     *   1. Attack pose — briefly shown right after this side's attack tick fires
+     *   2. Run pose — while THIS SIDE is actually sliding in (see isPlayerMoving/
+     *      isEnemyMoving — not the shared approaching flag, which is true
+     *      even when only the OTHER side is moving)
+     *   3. Idle — the default
+     */
+    private BufferedImage getCurrentSprite(Entity entity, boolean isAttacking, boolean isMoving) {
+        if (isAttacking) {
+            BufferedImage attack = attackSpriteCache.get(entity);
+            if (attack != null) return attack;
+        }
+        if (isMoving) {
             BufferedImage run = runSpriteCache.get(entity);
             if (run != null) return run;
         }
@@ -839,22 +996,23 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     private BufferedImage loadSpriteOrPlaceholder(Entity entity, Color placeholderColor) {
-        BufferedImage loaded = SpriteLoader.load(entity.getSpriteSet().idlePath(), SPRITE_W, SPRITE_H);
-        return loaded != null ? loaded : makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1));
+        int w = spriteWidthFor(entity), h = spriteHeightFor(entity);
+        BufferedImage loaded = SpriteLoader.load(entity.getSpriteSet().idlePath(), w, h);
+        return loaded != null ? loaded : makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1), w, h);
     }
 
-    private BufferedImage makePlaceholderSprite(Color base, String initial) {
-        BufferedImage img = new BufferedImage(SPRITE_W, SPRITE_H, BufferedImage.TYPE_INT_ARGB);
+    private BufferedImage makePlaceholderSprite(Color base, String initial, int spriteW, int spriteH) {
+        BufferedImage img = new BufferedImage(spriteW, spriteH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        int[] xs = { 4, SPRITE_W - 4, SPRITE_W - 10, 10 };
-        int[] ys = { 0, 0, SPRITE_H, SPRITE_H };
+        int[] xs = { 4, spriteW - 4, spriteW - 10, 10 };
+        int[] ys = { 0, 0, spriteH, spriteH };
         g.setColor(base); g.fillPolygon(xs, ys, 4);
         g.setColor(base.darker()); g.setStroke(new BasicStroke(2)); g.drawPolygon(xs, ys, 4);
-        g.setFont(new Font("SansSerif", Font.BOLD, 28));
+        g.setFont(new Font("SansSerif", Font.BOLD, Math.max(12, spriteW / 3)));
         g.setColor(new Color(255, 255, 255, 200));
         FontMetrics fm = g.getFontMetrics();
-        g.drawString(initial, (SPRITE_W - fm.stringWidth(initial)) / 2, SPRITE_H / 2 + fm.getAscent() / 2 - 4);
+        g.drawString(initial, (spriteW - fm.stringWidth(initial)) / 2, spriteH / 2 + fm.getAscent() / 2 - 4);
         g.dispose();
         return img;
     }

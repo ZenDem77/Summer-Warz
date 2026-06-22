@@ -25,15 +25,15 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     // ── Fighter geometry ──────────────────────────────────────────────────────
     private static final double ISO_SCALE     = 0.55;
     private static final int    GROUND_BASE   = 610;
-    private static final int    SPRITE_W      = 72;
-    private static final int    SPRITE_H      = 90;
-    private static final int    ENGAGE_DIST   = 110;
+    private static final int    SPRITE_W      = 144;  // base sprite box — doubled for crisper art
+    private static final int    SPRITE_H      = 180;
+    private static final int    GAP_PX        = 20;
     private static final int    APPROACH_SPEED = 5;
 
     private static final int F1_START_X   = -500;
     private static final int F2_START_X   =  500;
-    private static final int F1_TARGET_X  = -ENGAGE_DIST / 2;
-    private static final int F2_TARGET_X  =  ENGAGE_DIST / 2;
+    private int f1TargetX = -82;
+    private int f2TargetX =  82;
     private static final int F1_WORLD_Y   = 60;
     private static final int F2_WORLD_Y   = 90;
 
@@ -95,6 +95,11 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     // ── Flash state ───────────────────────────────────────────────────────────
     private boolean f1Flashing = false;
     private boolean f2Flashing = false;
+
+    // ── Attack pose ───────────────────────────────────────────────────────────
+    private static final int ATTACK_POSE_MS = 200;
+    private boolean f1Attacking = false, f2Attacking = false;
+    private int     f1AttackTick = 0,    f2AttackTick = 0;
     private int     f1FlashTick = 0;
     private int     f2FlashTick = 0;
 
@@ -140,6 +145,8 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     private final BufferedImage f2RunSprite;
     private final BufferedImage f1DeadSprite;  // null if no dead sprite was loaded
     private final BufferedImage f2DeadSprite;
+    private final BufferedImage f1AttackSprite; // null if no attack sprite was loaded
+    private final BufferedImage f2AttackSprite;
     private final BufferedImage bgImage;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -150,6 +157,10 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
         this.battle = battle;
         battle.addListener(this);
 
+        // Reset HP/alive state immediately, before any frame ever renders —
+        // matters for Spar rematches reusing the same Character instances.
+        battle.start();
+
         setPreferredSize(new Dimension(W, H));
         setLayout(null);
 
@@ -159,6 +170,8 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
         f2RunSprite  = SpriteLoader.load(battle.getFighter2().getSpriteSet().runPath(),  SPRITE_W, SPRITE_H);
         f1DeadSprite = SpriteLoader.load(battle.getFighter1().getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
         f2DeadSprite = SpriteLoader.load(battle.getFighter2().getSpriteSet().deadPath(), SPRITE_W, SPRITE_H);
+        f1AttackSprite = SpriteLoader.load(battle.getFighter1().getSpriteSet().attackPath(), SPRITE_W, SPRITE_H);
+        f2AttackSprite = SpriteLoader.load(battle.getFighter2().getSpriteSet().attackPath(), SPRITE_W, SPRITE_H);
 
         BufferedImage loadedBg;
         try {
@@ -182,6 +195,8 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
         if (f1Flashing && ++f1FlashTick > HIT_FLASH_MS / TICK_MS) { f1Flashing = false; f1FlashTick = 0; }
         if (f2Flashing && ++f2FlashTick > HIT_FLASH_MS / TICK_MS) { f2Flashing = false; f2FlashTick = 0; }
+        if (f1Attacking && ++f1AttackTick > ATTACK_POSE_MS / TICK_MS) { f1Attacking = false; f1AttackTick = 0; }
+        if (f2Attacking && ++f2AttackTick > ATTACK_POSE_MS / TICK_MS) { f2Attacking = false; f2AttackTick = 0; }
 
         floatingTexts.removeIf(ft -> !ft.tick());
         repaint();
@@ -203,9 +218,16 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     }
 
     private void beginCombat() {
-        battle.start();
+        // battle.start() already ran in the constructor.
         combatStarted = true;
         approaching   = true;
+        computeTargetPositions();
+    }
+
+    private void computeTargetPositions() {
+        int halfTotal = (SPRITE_W / 2 + SPRITE_W / 2 + GAP_PX) / 2;
+        f1TargetX = -halfTotal;
+        f2TargetX =  halfTotal;
     }
 
     // ── Approach ──────────────────────────────────────────────────────────────
@@ -213,8 +235,8 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     private void tickApproach() {
         if (!combatStarted) return;
         boolean d1 = false, d2 = false;
-        if (f1WorldX < F1_TARGET_X) f1WorldX = Math.min(f1WorldX + APPROACH_SPEED, F1_TARGET_X); else d1 = true;
-        if (f2WorldX > F2_TARGET_X) f2WorldX = Math.max(f2WorldX - APPROACH_SPEED, F2_TARGET_X); else d2 = true;
+        if (f1WorldX < f1TargetX) f1WorldX = Math.min(f1WorldX + APPROACH_SPEED, f1TargetX); else d1 = true;
+        if (f2WorldX > f2TargetX) f2WorldX = Math.max(f2WorldX - APPROACH_SPEED, f2TargetX); else d2 = true;
 
         if (d1 && d2) {
             approaching = false;
@@ -246,6 +268,7 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     @Override
     public void onFighter1Attack(String log, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
+            f1Attacking = true; f1AttackTick = 0;
             if (isMiss) spawnMissPopup(true);  // miss on f1 means f2 attacked and missed
             else { f2Flashing = true; f2FlashTick = 0; showDmgPopup(false, damage, isCrit); }
         });
@@ -254,6 +277,7 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     @Override
     public void onFighter2Attack(String log, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
+            f2Attacking = true; f2AttackTick = 0;
             if (isMiss) spawnMissPopup(true);
             else { f1Flashing = true; f1FlashTick = 0; showDmgPopup(true, damage, isCrit); }
         });
@@ -407,8 +431,10 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
         g2.drawImage(bgImage, 0, 0, null);
 
-        BufferedImage f1Current = (approaching && f1RunSprite != null) ? f1RunSprite : f1Sprite;
-        BufferedImage f2Current = (approaching && f2RunSprite != null) ? f2RunSprite : f2Sprite;
+        BufferedImage f1Current = (f1Attacking && f1AttackSprite != null) ? f1AttackSprite
+                : (approaching && f1RunSprite != null) ? f1RunSprite : f1Sprite;
+        BufferedImage f2Current = (f2Attacking && f2AttackSprite != null) ? f2AttackSprite
+                : (approaching && f2RunSprite != null) ? f2RunSprite : f2Sprite;
         drawSprite(g2, battle.getFighter1(), f1WorldX, F1_WORLD_Y, f1Current, f1DeadSprite, f1Flashing ? F1_FLASH : null, false);
         drawSprite(g2, battle.getFighter2(), f2WorldX, F2_WORLD_Y, f2Current, f2DeadSprite, f2Flashing ? F2_FLASH : null, true);
 
