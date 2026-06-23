@@ -34,9 +34,9 @@ public class TowerMainTester {
             Weapon weaponK = new IronEdge();
             Weapon weapon  = new WolvesGravestone();
 
-            weaponZ.equip(zed); weaponZ.setWeaponLevel(10);
-            weaponK.equip(kaizen); weaponK.setWeaponLevel(10);
-            weapon.equip(zayir); weapon.setWeaponLevel(10);
+            weaponZ.equip(zed); weaponZ.setWeaponLevel(20);
+            weaponK.equip(kaizen); weaponK.setWeaponLevel(20);
+            weapon.equip(zayir); weapon.setWeaponLevel(20);
 
             // ── Artifacts ─────────────────────────────────────────────────────
             Artifact a1 = Artifact.generateRandom();
@@ -44,10 +44,20 @@ public class TowerMainTester {
             Artifact a3 = Artifact.generateRandom();
             Artifact a4 = Artifact.generateRandom();
 
+            Artifact b1 = Artifact.generateRandom();
+            Artifact b2 = Artifact.generateRandom();
+            Artifact b3 = Artifact.generateRandom();
+            Artifact b4 = Artifact.generateRandom();
+
             zayir.equipArtifact(0, a1);
             zayir.equipArtifact(1, a2);
             zayir.equipArtifact(2, a3);
             zayir.equipArtifact(3, a4);
+
+            zed.equipArtifact(0, a1);
+            zed.equipArtifact(1, a2);
+            zed.equipArtifact(2, a3);
+            zed.equipArtifact(3, a4);
 
             System.out.println(zayir.getSummary());
 
@@ -90,8 +100,8 @@ public class TowerMainTester {
         }
 
         // Guard: floors 11+ have no enemies yet
-        if (mode.getCurrentFloorNumber() > 19) {
-            System.out.println("Floors 20+ not yet populated. Test ends here.");
+        if (mode.getCurrentFloorNumber() > 24) {
+            System.out.println("Floors 25+ not yet populated. Test ends here.");
             return;
         }
 
