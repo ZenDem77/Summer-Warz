@@ -8,7 +8,7 @@ public class Hanzo extends Enemy {
     private static final double CRIT_REDUCTION = 0.90;   // 90% crit damage reduction
 
     public Hanzo() {
-        super("Hanzo", 1000, 13, 7, 500, 0.90, 2.00);
+        super("Hanzo", 1000, 15, 7, 500, 0.90, 2.00);
     }
 
     @Override

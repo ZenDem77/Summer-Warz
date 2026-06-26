@@ -39,6 +39,12 @@ public class SpritePaths {
     public static final String ZAYIR_ATTACK = "";
     public static final String ZAYIR_DEAD   = "";
 
+    // ── Zenzenkoi ─────────────────────────────────────────────────────────────
+    public static final String ZENZENKOI_IDLE   = "";
+    public static final String ZENZENKOI_RUN    = "";
+    public static final String ZENZENKOI_ATTACK = "";
+    public static final String ZENZENKOI_DEAD   = "";
+
     // ── Add more characters/enemies here following the same pattern ──────────
     // Example:
     // public static final String PHAINON_IDLE   = "";

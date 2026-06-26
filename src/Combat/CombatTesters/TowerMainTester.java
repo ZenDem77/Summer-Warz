@@ -3,9 +3,11 @@ package Combat.CombatTesters;
 import Combat.NormalBattle.Battle;
 import Economy.Wallet;
 import Entities.Artifacts.Artifact;
+import Entities.Character;
 import Entities.Characters.Kaizen;
 import Entities.Characters.Zayir;
 import Entities.Characters.Zed;
+import Entities.Characters.Zenzenkoi;
 import Entities.Weapons.IronEdge;
 import Entities.Weapons.Weapon;
 import Entities.Weapons.WolvesGravestone;
@@ -27,16 +29,19 @@ public class TowerMainTester {
             Zed zed = new Zed();
             Kaizen kaizen = new Kaizen();
             Zayir zayir = new Zayir();
-            List<Entities.Character> team = List.of(kaizen, zed, zayir);
+            Zenzenkoi zenzenkoi = new Zenzenkoi();
+            List<Character> team = List.of(zenzenkoi, zayir, zed, kaizen);
 
             // ── Weapons ───────────────────────────────────────────────────────
+            Weapon weaponZe = new WolvesGravestone();
             Weapon weaponZ = new IronEdge();
             Weapon weaponK = new IronEdge();
             Weapon weapon  = new WolvesGravestone();
 
-            weaponZ.equip(zed); weaponZ.setWeaponLevel(20);
-            weaponK.equip(kaizen); weaponK.setWeaponLevel(20);
-            weapon.equip(zayir); weapon.setWeaponLevel(20);
+            weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
+            weaponZ.equip(zed); weaponZ.setWeaponLevel(10);
+            weaponK.equip(kaizen); weaponK.setWeaponLevel(10);
+            weapon.equip(zayir); weapon.setWeaponLevel(10);
 
             // ── Artifacts ─────────────────────────────────────────────────────
             Artifact a1 = Artifact.generateRandom();
@@ -49,17 +54,17 @@ public class TowerMainTester {
             Artifact b3 = Artifact.generateRandom();
             Artifact b4 = Artifact.generateRandom();
 
-            zayir.equipArtifact(0, a1);
-            zayir.equipArtifact(1, a2);
-            zayir.equipArtifact(2, a3);
-            zayir.equipArtifact(3, a4);
+            zenzenkoi.equipArtifact(0, a1);
+            zenzenkoi.equipArtifact(1, a2);
+            zenzenkoi.equipArtifact(2, a3);
+            zenzenkoi.equipArtifact(3, a4);
 
-            zed.equipArtifact(0, a1);
-            zed.equipArtifact(1, a2);
-            zed.equipArtifact(2, a3);
-            zed.equipArtifact(3, a4);
+            zed.equipArtifact(0, b1);
+            zed.equipArtifact(1, b2);
+            zed.equipArtifact(2, b3);
+            zed.equipArtifact(3, b4);
 
-            System.out.println(zayir.getSummary());
+            System.out.println(zenzenkoi.getSummary());
 
             // ── Player wallet — receives floor rewards as floors are cleared ──
             Wallet wallet = new Wallet();

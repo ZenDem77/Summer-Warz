@@ -15,7 +15,7 @@ public class Phainon extends Enemy {
     }
 
     public Phainon() {
-        super("Phainon", 500, 15, 3, 900, 0.90, 1.50);
+        super("Phainon", 500, 15, 3, 900, 0.90, 1.80);
     }
 
     @Override

@@ -9,8 +9,8 @@ import java.util.Set;
 public class IndestructibleSubject extends Enemy implements Shielded {
 
     private static final double CRIT_RATE       = 0.90;
-    private static final double CRIT_DAMAGE     = 1.80;
-    private static final int    SHIELD_INTERVAL = 4000;  // ms between shield grants
+    private static final double CRIT_DAMAGE     = 1.40;
+    private static final int    SHIELD_INTERVAL = 2000;  // ms between shield grants
 
     private final int tier;
     private       int shieldHp = 0;
@@ -36,13 +36,13 @@ public class IndestructibleSubject extends Enemy implements Shielded {
                     "IndestructibleSubject tier must be 1–10, got: " + tier);
     }
 
-    private static int calcHp(int tier)    { return 200 + (tier - 1) * 1200; }
+    private static int calcHp(int tier)    { return 200 + (tier - 1) * 500; }
     private static int calcAtk(int tier)   { return  28 + (tier - 1);  }
     private static int calcDef(int tier)   { return   8 + (tier - 1) * 2;  }
     private static int calcSpeed(int tier) { return 1000 - (tier - 1) * 50; }
 
     // ── Shield formula ────────────────────────────────────────────────────────
-    private int shieldPerStack() { return 20 + tier * 70; }
+    private int shieldPerStack() { return 20 + tier * 150; }
 
     // ── Shielded interface ────────────────────────────────────────────────────
     @Override
@@ -66,7 +66,7 @@ public class IndestructibleSubject extends Enemy implements Shielded {
             }
 
             @Override public String getName()        { return "Iron Shield"; }
-            @Override public String getDescription() { return "Gains " + shieldPerStack() + " shield every 4s (stacks)"; }
+            @Override public String getDescription() { return "Gains " + shieldPerStack() + " shield every 2s (stacks)"; }
             @Override public int    getIntervalMs()  { return SHIELD_INTERVAL; }
 
             @Override

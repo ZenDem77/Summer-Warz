@@ -29,17 +29,6 @@ public class Kaizen extends Character {
         super("Kaizen", 340, 16, 4, 500, 0.05, 0.50, 30);
     }
 
-    // ── Sprite ────────────────────────────────────────────────────────────────
-    @Override
-    public SpriteSet getSpriteSet() {
-        return new SpriteSet(
-                SpritePaths.KAIZEN_IDLE,
-                SpritePaths.KAIZEN_RUN,
-                SpritePaths.KAIZEN_ATTACK,
-                SpritePaths.KAIZEN_DEAD
-        );
-    }
-
     // ── Passive slots ─────────────────────────────────────────────────────────
     @Override
     public Passive[] getPassives() {
@@ -118,8 +107,19 @@ public class Kaizen extends Character {
             case 1 -> { maxHp += 8;  attack += 1; }
             case 2 -> { maxHp += 12; attack += 2; }
             case 3 -> { maxHp += 16; attack += 3; }
-            case 4 -> { maxHp += 36; attack += 4; defense += 1; }
+            case 4 -> { maxHp += 45; attack += 4; defense += 1; }
         }
+    }
+
+    // ── Sprite ────────────────────────────────────────────────────────────────
+    @Override
+    public SpriteSet getSpriteSet() {
+        return new SpriteSet(
+                SpritePaths.KAIZEN_IDLE,
+                SpritePaths.KAIZEN_RUN,
+                SpritePaths.KAIZEN_ATTACK,
+                SpritePaths.KAIZEN_DEAD
+        );
     }
 
     @Override

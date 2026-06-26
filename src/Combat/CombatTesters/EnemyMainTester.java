@@ -28,25 +28,38 @@ public class EnemyMainTester {
             Zed zed = new Zed();
             Kaizen kaizen = new Kaizen();
             Zayir zayir = new Zayir();
-            List<Character> team = List.of(kaizen, zed, zayir);
+            Zenzenkoi zenzenkoi = new Zenzenkoi();
+            List<Character> team = List.of(zenzenkoi, zayir, zed, kaizen);
 
+            Weapon weaponZe = new IronEdge();
             Weapon weaponZ = new IronEdge();
             Weapon weaponK = new IronEdge();
             Weapon weapon  = new WolvesGravestone();
 
-            weaponZ.equip(zed); weaponZ.setWeaponLevel(10);
-            weaponK.equip(kaizen); weaponK.setWeaponLevel(10);
-            weapon.equip(zayir); weapon.setWeaponLevel(10);
+            weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
+            weaponZ.equip(zed); weaponZ.setWeaponLevel(20);
+            weaponK.equip(kaizen); weaponK.setWeaponLevel(20);
+            weapon.equip(zayir); weapon.setWeaponLevel(20);
 
             Artifact a1 = Artifact.generateRandom();
             Artifact a2 = Artifact.generateRandom();
             Artifact a3 = Artifact.generateRandom();
             Artifact a4 = Artifact.generateRandom();
 
-            kaizen.equipArtifact(0, a1);
-            kaizen.equipArtifact(1, a2);
-            kaizen.equipArtifact(2, a3);
-            kaizen.equipArtifact(3, a4);
+            Artifact b1 = Artifact.generateRandom();
+            Artifact b2 = Artifact.generateRandom();
+            Artifact b3 = Artifact.generateRandom();
+            Artifact b4 = Artifact.generateRandom();
+
+            zenzenkoi.equipArtifact(0, a1);
+            zenzenkoi.equipArtifact(1, a2);
+            zenzenkoi.equipArtifact(2, a3);
+            zenzenkoi.equipArtifact(3, a4);
+
+            zed.equipArtifact(0, b1);
+            zed.equipArtifact(1, b2);
+            zed.equipArtifact(2, b3);
+            zed.equipArtifact(3, b4);
 
             // ═══════════════════════════════════════════════════════════════════
             //  ENEMY

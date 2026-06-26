@@ -1,6 +1,5 @@
 package Entities.Characters;
 
-import Combat.DamageResult;
 import Entities.Entity;
 import Entities.Character;
 import Entities.PassiveHandler.*;
@@ -11,13 +10,9 @@ import java.util.Set;
 
 public class Zenzenkoi extends Character {
 
-    // ── Passive 1 constants ───────────────────────────────────────────────────
-    private static final double PASSIVE_1_CRIT_RATE_PER_10_ATK = 0.01;    // 1%
-    private static final double PASSIVE_1_CRIT_RATE_CAP         = 0.30;   // 30%
-
-    // ── Passive 2 constants ───────────────────────────────────────────────────
-    private static final double PASSIVE_2_CRIT_DMG_PER_10_ATK  = 0.02;    // 2%
-    private static final double PASSIVE_2_CRIT_DMG_CAP          = 0.60;   // 60%
+    // ── Passive 1 & 2 flat bonuses ────────────────────────────────────────────
+    private static final double PASSIVE_1_CRIT_RATE_BONUS = 0.30;   // +30% flat
+    private static final double PASSIVE_2_CRIT_DMG_BONUS  = 0.60;   // +60% flat
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
     private static final double PASSIVE_3_HP_THRESHOLD = 0.25;   // 25% HP
@@ -26,6 +21,20 @@ public class Zenzenkoi extends Character {
 
     public Zenzenkoi() {
         super("Zenzenkoi", 270, 15, 2, 700, 0.05, 0.50, 30);
+    }
+
+    @Override
+    public double getCritRate() {
+        double base = super.getCritRate();
+        if (level >= PASSIVE_1_LEVEL) base += PASSIVE_1_CRIT_RATE_BONUS;
+        return base;
+    }
+
+    @Override
+    public double getCritDamage() {
+        double base = super.getCritDamage();
+        if (level >= PASSIVE_2_LEVEL) base += PASSIVE_2_CRIT_DMG_BONUS;
+        return base;
     }
 
     // ── Passive slots ─────────────────────────────────────────────────────────
@@ -37,68 +46,29 @@ public class Zenzenkoi extends Character {
 
     private Passive passive1() {
         return new Passive() {
-            // Stores the exact bonus applied so onBattleEnd removes the same value
-            private double appliedBonus = 0.0;
-
             @Override public String getName()        { return "Sharpened Focus"; }
             @Override public String getDescription() {
-                return "+1% Crit Rate per 10 Total ATK (max +30%)";
+                return "Permanently gain +30% Crit Rate.";
             }
             @Override public int getIntervalMs() { return 0; }
-
-            @Override
-            public Set<PassiveEvent> respondsTo() {
-                return EnumSet.of(PassiveEvent.BATTLE_START, PassiveEvent.BATTLE_END);
+            @Override public Set<PassiveEvent> respondsTo() {
+                return EnumSet.noneOf(PassiveEvent.class);
             }
-
-            @Override
-            public void onBattleStart(Entity owner, Combat.IBattle battle) {
-                int totalAtk = owner.getEffectiveAtk();
-                appliedBonus = Math.min(PASSIVE_1_CRIT_RATE_CAP,
-                        Math.floor(totalAtk / 10.0) * PASSIVE_1_CRIT_RATE_PER_10_ATK);
-                owner.addCritRate(appliedBonus);
-            }
-
-            @Override
-            public void onBattleEnd(Entity owner, Combat.IBattle battle) {
-                owner.addCritRate(-appliedBonus);
-                appliedBonus = 0.0;
-            }
-
-            @Override public void trigger(PassiveContext ctx) { /* lifecycle-only */ }
+            @Override public void trigger(PassiveContext ctx) { /* handled by getCritRate() */ }
         };
     }
 
     private Passive passive2() {
         return new Passive() {
-            private double appliedBonus = 0.0;
-
             @Override public String getName()        { return "Lethal Edge"; }
             @Override public String getDescription() {
-                return "+2% Crit Damage per 10 Total ATK (max +60%)";
+                return "Permanently gain +60% Crit Damage.";
             }
             @Override public int getIntervalMs() { return 0; }
-
-            @Override
-            public Set<PassiveEvent> respondsTo() {
-                return EnumSet.of(PassiveEvent.BATTLE_START, PassiveEvent.BATTLE_END);
+            @Override public Set<PassiveEvent> respondsTo() {
+                return EnumSet.noneOf(PassiveEvent.class);
             }
-
-            @Override
-            public void onBattleStart(Entity owner, Combat.IBattle battle) {
-                int totalAtk = owner.getEffectiveAtk();
-                appliedBonus = Math.min(PASSIVE_2_CRIT_DMG_CAP,
-                        Math.floor(totalAtk / 10.0) * PASSIVE_2_CRIT_DMG_PER_10_ATK);
-                owner.addCritDamage(appliedBonus);
-            }
-
-            @Override
-            public void onBattleEnd(Entity owner, Combat.IBattle battle) {
-                owner.addCritDamage(-appliedBonus);
-                appliedBonus = 0.0;
-            }
-
-            @Override public void trigger(PassiveContext ctx) { /* lifecycle-only */ }
+            @Override public void trigger(PassiveContext ctx) { /* handled by getCritDamage() */ }
         };
     }
 
@@ -108,7 +78,7 @@ public class Zenzenkoi extends Character {
 
             @Override public String getName()        { return "Last Stand Strike"; }
             @Override public String getDescription() {
-                return "At 25% HP: unleash one attack at 100 + 150% Total ATK (can crit, affected by shields and crit reduction). Once per battle.";
+                return "At 25% HP: unleash one attack at 100 + 250% Total ATK (can crit, affected by shields and crit reduction). Once per battle.";
             }
             @Override public int getIntervalMs() { return 0; }
 
@@ -145,7 +115,7 @@ public class Zenzenkoi extends Character {
 
                 // ── Damage formula: flat 100 + 150% of total ATK ──────────────
                 int totalAtk  = ctx.owner.getEffectiveAtk();
-                double rawBase = 100 + (1.50 * totalAtk);
+                double rawBase = 100 + (2.50 * totalAtk);
 
                 // ── Crit roll ─────────────────────────────────────────────────
                 boolean isCrit = Math.random() < ctx.owner.getCritRate();
@@ -169,7 +139,7 @@ public class Zenzenkoi extends Character {
                 target.takeDamage(finalDmg);
 
                 String desc = (isCrit ? "★ CRIT! " : "")
-                        + actual + " dmg at 25% HP (100 + 150% ATK)"
+                        + actual + " dmg at 25% HP (100 + 250% ATK)"
                         + (isCrit ? "!" : "");
                 ctx.battle.notifyPassive(ctx.owner, target, getName(), desc, actual, false);
                 ctx.battle.checkEndPublic();
