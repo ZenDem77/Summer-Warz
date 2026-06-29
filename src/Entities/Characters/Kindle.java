@@ -4,8 +4,10 @@ import Combat.DamageResult;
 import Entities.Entity;
 import Entities.Character;
 import Entities.PassiveHandler.*;
+import Entities.Sprites.SpritePaths;
+import Entities.Sprites.SpriteSet;
 
-public class Zed extends Character {
+public class Kindle extends Character {
 
     // ── Passive 1 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_1_BONUS_DAMAGE = 20;
@@ -22,8 +24,8 @@ public class Zed extends Character {
     private static final int PASSIVE_3_HEAL_AMOUNT  = 10;
     private static final int PASSIVE_3_INTERVAL_MS  = 550;
 
-    public Zed() {
-        super("Zed", 220, 27, 5, 400, 0.05, 0.50, 30);
+    public Kindle() {
+        super("Kindle", 220, 27, 5, 400, 0.05, 0.50, 30);
     }
 
     // ── Passive slots ─────────────────────────────────────────────────────────
@@ -116,6 +118,17 @@ public class Zed extends Character {
             case 3 -> { maxHp += 12; attack += 3; }
             case 4 -> { maxHp += 36; attack += 5; defense += 1; }
         }
+    }
+
+    // ── Sprite ────────────────────────────────────────────────────────────────
+    @Override
+    public SpriteSet getSpriteSet() {
+        return new SpriteSet(
+                SpritePaths.KINDLE_IDLE,
+                SpritePaths.KINDLE_RUN,
+                SpritePaths.KINDLE_ATTACK,
+                SpritePaths.KINDLE_DEAD
+        );
     }
 
     @Override

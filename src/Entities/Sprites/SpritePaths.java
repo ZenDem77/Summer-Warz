@@ -27,11 +27,11 @@ public class SpritePaths {
     public static final String KAIZEN_ATTACK = "/characters/kaizen/kaizen_attack.png";
     public static final String KAIZEN_DEAD   = "/characters/kaizen/kaizen_dead.png";
 
-    // ── Zed ───────────────────────────────────────────────────────────────────
-    public static final String ZED_IDLE   = "";
-    public static final String ZED_RUN    = "";
-    public static final String ZED_ATTACK = "";
-    public static final String ZED_DEAD   = "";
+    // ── Kindle ───────────────────────────────────────────────────────────────────
+    public static final String KINDLE_IDLE = "/characters/kindle/Kindle_Idle.png";
+    public static final String KINDLE_RUN = "/characters/kindle/Kindle_Run.png";
+    public static final String KINDLE_ATTACK = "/characters/kindle/Kindle_Attack.png";
+    public static final String KINDLE_DEAD = "/characters/kindle/Kindle_Dead.png";
 
     // ── Zayir ─────────────────────────────────────────────────────────────────
     public static final String ZAYIR_IDLE   = "";

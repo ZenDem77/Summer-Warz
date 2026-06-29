@@ -5,8 +5,8 @@ import Economy.Wallet;
 import Entities.Artifacts.Artifact;
 import Entities.Character;
 import Entities.Characters.Kaizen;
+import Entities.Characters.Kindle;
 import Entities.Characters.Zayir;
-import Entities.Characters.Zed;
 import Entities.Characters.Zenzenkoi;
 import Entities.Weapons.IronEdge;
 import Entities.Weapons.Weapon;
@@ -26,11 +26,11 @@ public class TowerMainTester {
             GamePanel window = new GamePanel();
 
             // ── Build player team ─────────────────────────────────────────────
-            Zed zed = new Zed();
+            Kindle kindle = new Kindle();
             Kaizen kaizen = new Kaizen();
             Zayir zayir = new Zayir();
             Zenzenkoi zenzenkoi = new Zenzenkoi();
-            List<Character> team = List.of(zenzenkoi, zayir, zed, kaizen);
+            List<Character> team = List.of(kindle, zenzenkoi, zayir, kaizen);
 
             // ── Weapons ───────────────────────────────────────────────────────
             Weapon weaponZe = new WolvesGravestone();
@@ -39,7 +39,7 @@ public class TowerMainTester {
             Weapon weapon  = new WolvesGravestone();
 
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
-            weaponZ.equip(zed); weaponZ.setWeaponLevel(10);
+            weaponZ.equip(kindle); weaponZ.setWeaponLevel(10);
             weaponK.equip(kaizen); weaponK.setWeaponLevel(10);
             weapon.equip(zayir); weapon.setWeaponLevel(10);
 
@@ -59,10 +59,10 @@ public class TowerMainTester {
             zenzenkoi.equipArtifact(2, a3);
             zenzenkoi.equipArtifact(3, a4);
 
-            zed.equipArtifact(0, b1);
-            zed.equipArtifact(1, b2);
-            zed.equipArtifact(2, b3);
-            zed.equipArtifact(3, b4);
+            kindle.equipArtifact(0, b1);
+            kindle.equipArtifact(1, b2);
+            kindle.equipArtifact(2, b3);
+            kindle.equipArtifact(3, b4);
 
             System.out.println(zenzenkoi.getSummary());
 
