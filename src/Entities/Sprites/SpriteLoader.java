@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-
 /**
  * SpriteLoader — loads sprite images from disk, scales them up with
  * NEAREST-NEIGHBOR interpolation (not the smooth/bilinear scaling Java uses
@@ -46,11 +45,11 @@ public class SpriteLoader {
      * bottom-center anchored.
      *
      * Supports two kinds of paths, tried in this order:
-     *   1. Classpath resource (e.g. "/characters/kaizen/kaizen_idle.png") —
+     *   1. Classpath resource (e.g. "/characters/xyniz/phainon_idle.png") —
      *      works if your sprites live under a folder marked as a Resources
      *      Root in IntelliJ, same as how background images are loaded
      *      elsewhere in this project. Must start with "/".
-     *   2. Literal filesystem path (e.g. "C:/Users/Owner/.../kaizen_idle.png") —
+     *   2. Literal filesystem path (e.g. "C:/Users/Owner/.../phainon_idle.png") —
      *      works regardless of project setup, used as a fallback.
      *
      * @param filePath  classpath resource path (starting with "/") or absolute filesystem path
@@ -138,6 +137,50 @@ public class SpriteLoader {
         return canvas;
     }
 
-    /** Clears the cache — useful if you want to reload sprites without restarting the game. */
-    public static void clearCache() { cache.clear(); }
+    /**
+     * Loads and upscales an image for use as a projectile sprite.
+     * Unlike load(), this does NOT pad the result into a fixed sprite box —
+     * projectiles should render at their natural (upscaled) size so they
+     * look correctly proportioned relative to the characters they fly past.
+     *
+     * @param filePath classpath resource path (starting with "/") or absolute filesystem path
+     * @return the upscaled image, or null if the path is null/blank or can't be read
+     */
+    public static BufferedImage loadNative(String filePath) {
+        if (filePath == null || filePath.isBlank()) return null;
+
+        String cacheKey = filePath + "@native";
+        if (cache.containsKey(cacheKey)) return cache.get(cacheKey);
+
+        BufferedImage source = null;
+
+        if (filePath.startsWith("/")) {
+            java.net.URL resource = SpriteLoader.class.getResource(filePath);
+            if (resource != null) {
+                try { source = ImageIO.read(resource); }
+                catch (IOException e) {
+                    System.out.println("[SpriteLoader] Found resource but couldn't read: " + filePath);
+                }
+            }
+        }
+        if (source == null) {
+            try {
+                java.io.File file = new java.io.File(filePath);
+                if (file.exists()) source = ImageIO.read(file);
+                else System.out.println("[SpriteLoader] Projectile sprite not found: " + filePath);
+            } catch (IOException e) {
+                System.out.println("[SpriteLoader] Failed to load projectile: " + filePath);
+            }
+        }
+
+        BufferedImage result = null;
+        if (source != null) {
+            int w = source.getWidth()  * UPSCALE_FACTOR;
+            int h = source.getHeight() * UPSCALE_FACTOR;
+            result = scaleNearestNeighbor(source, w, h);
+        }
+
+        cache.put(cacheKey, result);
+        return result;
+    }
 }

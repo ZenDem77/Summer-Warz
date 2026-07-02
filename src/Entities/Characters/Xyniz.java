@@ -6,7 +6,7 @@ import Entities.Character;
 import Entities.PassiveHandler.*;
 import Entities.Sprites.*;
 
-public class Kaizen extends Character {
+public class Xyniz extends Character {
 
     // ── Passive 1 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_1_BASE_DMG_MIN = 5;
@@ -25,8 +25,8 @@ public class Kaizen extends Character {
     private static final int PASSIVE_3_INTERVAL_MS   = 4000;
     private        final int PASSIVE_3_EXTRA_DMG     = (int)(getEffectiveAtk() * 1.40);
 
-    public Kaizen() {
-        super("Kaizen", 340, 16, 4, 500, 0.05, 0.50, 30);
+    public Xyniz() {
+        super("Xyniz", 340, 16, 4, 500, 0.05, 0.50, 30);
     }
 
     // ── Passive slots ─────────────────────────────────────────────────────────
@@ -115,10 +115,11 @@ public class Kaizen extends Character {
     @Override
     public SpriteSet getSpriteSet() {
         return new SpriteSet(
-                SpritePaths.KAIZEN_IDLE,
-                SpritePaths.KAIZEN_RUN,
-                SpritePaths.KAIZEN_ATTACK,
-                SpritePaths.KAIZEN_DEAD
+                SpritePaths.XYNIZ_IDLE,
+                SpritePaths.XYNIZ_RUN,
+                SpritePaths.XYNIZ_ATTACK,
+                SpritePaths.XYNIZ_DEAD,
+                SpritePaths.XYNIZ_PROJECTILE
         );
     }
 

@@ -17,7 +17,7 @@ public class SparMainTester {
 
             // ── Choose the two fighters ────────────────────────────────────────
             Character fighter1 = new Kindle();
-            Character fighter2 = new Kaizen();
+            Character fighter2 = new Xyniz();
 
             // ── Create SparMode ───────────────────────────────────────────────
             SparMode mode = new SparMode(fighter1, fighter2);

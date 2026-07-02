@@ -109,10 +109,16 @@ public class Zayir extends Character {
                         c.removePassiveAtkBonus(PASSIVE_2_ATK_BONUS);
                         bonusActive = false;
                     }
+                    // Unregister before stopping so pause() doesn't try to
+                    // restart a timer that has already naturally completed.
+                    battle.unregisterPausableTimer((javax.swing.Timer) e.getSource());
                     ((javax.swing.Timer) e.getSource()).stop();
                 });
                 expireTimer.setRepeats(false);
                 expireTimer.start();
+                // Register so battle.pause() / resume() include this timer
+                // alongside the recurring tick timers.
+                battle.registerPausableTimer(expireTimer);
             }
 
             @Override
@@ -120,6 +126,7 @@ public class Zayir extends Character {
                 if (!(owner instanceof Character c)) return;
 
                 if (expireTimer != null) {
+                    battle.unregisterPausableTimer(expireTimer);
                     expireTimer.stop();
                     expireTimer = null;
                 }

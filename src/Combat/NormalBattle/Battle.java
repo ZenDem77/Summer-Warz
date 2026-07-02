@@ -52,6 +52,15 @@ public class Battle implements IBattle {
     private final List<Passive> enemyPassives  = new ArrayList<>();
     private final List<javax.swing.Timer> passiveTimers = new ArrayList<>();
 
+    // ── Pausable timer registry ───────────────────────────────────────────────
+    // Passive lifecycle timers (e.g. Zayir's 2s ATK boost) register here so
+    // pause()/resume() can include them alongside the recurring tick timers.
+    private final List<javax.swing.Timer> pausableTimers    = new ArrayList<>();
+    // Tracks exactly which timers WE stopped on pause() so resume() only
+    // restarts those — avoids accidentally restarting a one-shot timer that
+    // had already fired and stopped naturally before the pause.
+    private final java.util.Set<javax.swing.Timer> timersPausedByUs = new java.util.LinkedHashSet<>();
+
     // ── Lifecycle tracking ─────────────────────────────────────────────────────
     // Tracks which fighter (per side) most recently received onBattleStart.
     // Prevents onBattleStart from re-firing for a fighter that is STILL
@@ -151,23 +160,54 @@ public class Battle implements IBattle {
     /** Stop all passive timers (called on battle end or reset). */
     public void stop() {
         stopPassiveTimers();
+        pausableTimers.forEach(javax.swing.Timer::stop);
+        pausableTimers.clear();
+        timersPausedByUs.clear();
     }
 
     /**
-     * Suspends all passive tick timers without changing battle state.
-     * Call when showing the info overlay or any other pause screen.
+     * Suspends all passive tick timers AND registered one-shot timers.
+     * Tracks exactly which timers were running so resume() only restarts
+     * those — avoids restarting a one-shot timer that already fired naturally.
      */
     public void pause() {
-        passiveTimers.forEach(javax.swing.Timer::stop);
+        timersPausedByUs.clear();
+        for (javax.swing.Timer t : passiveTimers) {
+            if (t.isRunning()) { t.stop(); timersPausedByUs.add(t); }
+        }
+        for (javax.swing.Timer t : pausableTimers) {
+            if (t.isRunning()) { t.stop(); timersPausedByUs.add(t); }
+        }
     }
 
     /**
-     * Resumes passive tick timers after a pause.
-     * Only works while the battle is ONGOING.
+     * Resumes only the timers that were running when pause() was called.
+     * One-shot timers that had already fired before the pause are not restarted.
      */
     public void resume() {
         if (state != BattleState.ONGOING) return;
-        passiveTimers.forEach(javax.swing.Timer::start);
+        timersPausedByUs.forEach(javax.swing.Timer::start);
+        timersPausedByUs.clear();
+    }
+
+    /**
+     * Registers a one-shot or lifecycle timer so pause()/resume() include it.
+     * Call from a passive's onBattleStart when creating a timer that must
+     * stop when the info overlay opens (e.g. Zayir's 2-second ATK boost timer).
+     */
+    @Override
+    public void registerPausableTimer(javax.swing.Timer timer) {
+        pausableTimers.add(timer);
+    }
+
+    /**
+     * Removes a timer from the pausable registry — call when it has fired so
+     * it doesn't accumulate across fighters or battles.
+     */
+    @Override
+    public void unregisterPausableTimer(javax.swing.Timer timer) {
+        pausableTimers.remove(timer);
+        timersPausedByUs.remove(timer);
     }
 
     /** Temporarily suspend passive timers without clearing them (used by pause). */

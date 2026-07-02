@@ -11,7 +11,7 @@ package Entities.Sprites;
  * the game will automatically draw a placeholder shape instead, so nothing
  * breaks while art is still in progress.
  *
- * Paths can be absolute (e.g. "C:/Users/Owner/IdeaProjects/Summer Warz/res/kaizen_idle.png")
+ * Paths can be absolute (e.g. "C:/Users/Owner/IdeaProjects/Summer Warz/res/phainon_idle.png")
  * or, if you put sprites in a resources folder marked as a Resources Root
  * in IntelliJ, a classpath-relative path may work too — but plain absolute
  * paths are the simplest to get right, so start there.
@@ -21,11 +21,12 @@ package Entities.Sprites;
  */
 public class SpritePaths {
 
-    // ── Kaizen ────────────────────────────────────────────────────────────────
-    public static final String KAIZEN_IDLE   = "/characters/kaizen/kaizen_idle.png";
-    public static final String KAIZEN_RUN    = "/characters/kaizen/kaizen_run.png";
-    public static final String KAIZEN_ATTACK = "/characters/kaizen/kaizen_attack.png";
-    public static final String KAIZEN_DEAD   = "/characters/kaizen/kaizen_dead.png";
+    // ── Xyniz ────────────────────────────────────────────────────────────────
+    public static final String XYNIZ_IDLE = "/characters/xyniz/Xyniz_Idle.png";
+    public static final String XYNIZ_RUN = "/characters/xyniz/Xyniz_Dash.png";
+    public static final String XYNIZ_ATTACK = "/characters/xyniz/Xyniz_Attack.png";
+    public static final String XYNIZ_DEAD = "/characters/xyniz/Xyniz_Dead.png";
+    public static final String XYNIZ_PROJECTILE = "/characters/xyniz/Xyniz_Attack_2.png";
 
     // ── Kindle ───────────────────────────────────────────────────────────────────
     public static final String KINDLE_IDLE = "/characters/kindle/Kindle_Idle.png";
@@ -45,10 +46,13 @@ public class SpritePaths {
     public static final String ZENZENKOI_ATTACK = "";
     public static final String ZENZENKOI_DEAD   = "";
 
-    // ── Add more characters/enemies here following the same pattern ──────────
-    // Example:
-    // public static final String PHAINON_IDLE   = "";
-    // public static final String PHAINON_RUN    = "";
-    // public static final String PHAINON_ATTACK = "";
-    // public static final String PHAINON_DEAD   = "";
+    // ──────────────────────────────────────────────────────────────────────────
+    // ── BOSSES ──
+    // ──────────────────────────────────────────────────────────────────────────
+
+    // ── Phainon ───────────────────────────────────────────────────────────────
+     public static final String PHAINON_IDLE   = "/bosses/phainon/phainon_idle.png";
+     public static final String PHAINON_RUN    = "/bosses/phainon/phainon_run.png";
+     public static final String PHAINON_ATTACK = "/bosses/phainon/phainon_attack.png";
+     public static final String PHAINON_DEAD   = "/bosses/phainon/phainon_dead.png";
 }

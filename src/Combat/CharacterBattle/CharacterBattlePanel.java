@@ -9,6 +9,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
+import Combat.BattleUI;
+import Combat.BattleUI.FloatingText;
+
 /**
  * CharacterBattlePanel — full-screen battle view for Character vs Character.
  *
@@ -104,34 +107,9 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     private int     f2FlashTick = 0;
 
     // ── Floating text ─────────────────────────────────────────────────────────
+    // FloatingText itself is shared (see Combat.BattleUI.FloatingText, imported
+    // above) so every panel's damage/heal/miss popups look and animate identically.
     private final java.util.List<FloatingText> floatingTexts = new java.util.ArrayList<>();
-
-    private static class FloatingText {
-        static final int DURATION_MS = 700;
-        static final int RISE_PX     = 40;
-        String  text;
-        float   x, y;
-        int     alpha = 255;
-        boolean isCrit, isHeal, isPassiveDmg, isMiss, leftAnchored;
-        int   ticksLeft;
-        float dy;
-        int   dAlpha;
-
-        FloatingText(String text, float x, float y,
-                     boolean isCrit, boolean isHeal, boolean isPassiveDmg,
-                     boolean isMiss, boolean leftAnchored) {
-            this.text = text; this.x = x; this.y = y;
-            this.isCrit = isCrit; this.isHeal = isHeal;
-            this.isPassiveDmg = isPassiveDmg; this.isMiss = isMiss;
-            this.leftAnchored = leftAnchored;
-            int total = DURATION_MS / TICK_MS;
-            ticksLeft = total;
-            dy     = (float) RISE_PX / total;
-            dAlpha = 255 / total;
-        }
-
-        boolean tick() { y -= dy; alpha -= dAlpha; ticksLeft--; return alpha > 0 && ticksLeft > 0; }
-    }
 
     // ── End overlay ───────────────────────────────────────────────────────────
     private CharacterBattle.BattleState battleResult = null;
@@ -198,7 +176,7 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
         if (f1Attacking && ++f1AttackTick > ATTACK_POSE_MS / TICK_MS) { f1Attacking = false; f1AttackTick = 0; }
         if (f2Attacking && ++f2AttackTick > ATTACK_POSE_MS / TICK_MS) { f2Attacking = false; f2AttackTick = 0; }
 
-        floatingTexts.removeIf(ft -> !ft.tick());
+        BattleUI.updateFloatingTexts(floatingTexts);
         repaint();
     }
 
@@ -322,68 +300,32 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     private void showDmgPopup(boolean onF1, int dmg, boolean isCrit) {
         Point sp = spriteScreenPos(onF1 ? f1WorldX : f2WorldX,
                 onF1 ? F1_WORLD_Y : F2_WORLD_Y);
-        String txt = "-" + dmg + (isCrit ? "!" : "");
-        floatingTexts.add(new FloatingText(txt, sp.x + SPRITE_W / 2f, sp.y - 10,
-                isCrit, false, false, false, false));
+        BattleUI.spawnDamagePopup(floatingTexts, sp.x, sp.y, SPRITE_W, dmg, isCrit, TICK_MS);
     }
 
     private void spawnMissPopup(boolean onF1) {
         Point sp = spriteScreenPos(onF1 ? f1WorldX : f2WorldX,
                 onF1 ? F1_WORLD_Y : F2_WORLD_Y);
-        floatingTexts.add(new FloatingText("MISS!", sp.x + SPRITE_W / 2f, sp.y - 10,
-                false, false, false, true, false));
+        BattleUI.spawnMissPopup(floatingTexts, sp.x, sp.y, SPRITE_W, TICK_MS);
     }
 
     private void spawnPassivePopup(boolean onF1, int amount, boolean isHeal) {
         Point sp = spriteScreenPos(onF1 ? f1WorldX : f2WorldX,
                 onF1 ? F1_WORLD_Y : F2_WORLD_Y);
-        String txt = (isHeal ? "+" : "-") + amount;
-        boolean leftAnchored;
-        float sx, sy;
-        if (isHeal) {
-            leftAnchored = !onF1;
-            sx = onF1 ? sp.x - 8 : sp.x + SPRITE_W + 8;
-            sy = sp.y + SPRITE_H / 2f;
-        } else {
-            leftAnchored = false;
-            sx = sp.x + SPRITE_W / 2f;
-            sy = sp.y - 10;
-        }
-        floatingTexts.add(new FloatingText(txt, sx, sy, false, isHeal, !isHeal, false, leftAnchored));
+        BattleUI.spawnPassivePopup(floatingTexts, sp.x, sp.y, SPRITE_W, SPRITE_H, onF1, amount, isHeal, TICK_MS);
     }
 
     // ── Projection ────────────────────────────────────────────────────────────
 
     private Point spriteScreenPos(double worldX, double worldY) {
-        int sx = (int)(W / 2.0 + worldX) - SPRITE_W / 2;
-        int sy = (int)(GROUND_BASE - worldY * ISO_SCALE) - SPRITE_H;
-        return new Point(sx, sy);
+        return BattleUI.spritePos(W, GROUND_BASE, ISO_SCALE, worldX, worldY, SPRITE_W, SPRITE_H);
     }
 
     // ── Placeholder generators ────────────────────────────────────────────────
 
     private BufferedImage loadSpriteOrPlaceholder(Entity entity, Color placeholderColor) {
         BufferedImage loaded = SpriteLoader.load(entity.getSpriteSet().idlePath(), SPRITE_W, SPRITE_H);
-        return loaded != null ? loaded : makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1));
-    }
-
-    private BufferedImage makePlaceholderSprite(Color base, String initial) {
-        BufferedImage img = new BufferedImage(SPRITE_W, SPRITE_H, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = img.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        int[] xs = { 4, SPRITE_W - 4, SPRITE_W - 10, 10 };
-        int[] ys = { 0, 0, SPRITE_H, SPRITE_H };
-        g.setColor(base);
-        g.fillPolygon(xs, ys, 4);
-        g.setColor(base.darker());
-        g.setStroke(new BasicStroke(2));
-        g.drawPolygon(xs, ys, 4);
-        g.setFont(new Font("SansSerif", Font.BOLD, 28));
-        g.setColor(new Color(255, 255, 255, 200));
-        FontMetrics fm = g.getFontMetrics();
-        g.drawString(initial, (SPRITE_W - fm.stringWidth(initial)) / 2, SPRITE_H / 2 + fm.getAscent() / 2 - 4);
-        g.dispose();
-        return img;
+        return loaded != null ? loaded : BattleUI.makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1), SPRITE_W, SPRITE_H);
     }
 
     private BufferedImage makePlaceholderBg() {
@@ -440,7 +382,7 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
         drawHud(g2);
 
-        for (FloatingText ft : floatingTexts) drawFloatingText(g2, ft);
+        for (FloatingText ft : floatingTexts) BattleUI.drawFloatingText(g2, ft);
 
         if (introState != IntroState.DONE) drawIntroText(g2);
         if (battleResult != null)          drawResultOverlay(g2);
@@ -497,57 +439,17 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
 
         Character f1 = battle.getFighter1();
         Character f2 = battle.getFighter2();
-        drawHudEntry(g2, f1.getName(), f1, BAR_MARGIN, false);
-        drawHudEntry(g2, f2.getName(), f2, W - BAR_MARGIN - BAR_W, true);
+        drawHudEntry(g2, f1, BAR_MARGIN, false);
+        drawHudEntry(g2, f2, W - BAR_MARGIN - BAR_W, true);
     }
 
-    private void drawHudEntry(Graphics2D g2, String label, Entity entity, int barX, boolean rightAlign) {
-        int barY = 16;
-        g2.setFont(new Font("SansSerif", Font.BOLD, 13));
-        FontMetrics fm = g2.getFontMetrics();
-        int nx = rightAlign ? barX + BAR_W - fm.stringWidth(label) : barX;
-        g2.setColor(Color.WHITE);
-        g2.drawString(label, nx, barY + 11);
-
-        int by = barY + 18;
-        g2.setColor(BAR_EMPTY);
-        g2.fillRoundRect(barX, by, BAR_W, BAR_H, BAR_H, BAR_H);
-
-        double pct = entity.getHpPercent();
-        int fillW = Math.max(0, (int)(BAR_W * pct));
-        Color barCol = pct > 0.5 ? BAR_GREEN : pct > 0.25 ? BAR_YELLOW : BAR_RED;
-        if (fillW > 0) {
-            g2.setColor(barCol);
-            g2.fillRoundRect(barX, by, fillW, BAR_H, BAR_H, BAR_H);
-            g2.setColor(new Color(255, 255, 255, 50));
-            g2.fillRoundRect(barX, by, fillW, BAR_H / 2, BAR_H, BAR_H);
-        }
-        g2.setColor(new Color(0, 0, 0, 120));
-        g2.setStroke(new BasicStroke(1.5f));
-        g2.drawRoundRect(barX, by, BAR_W, BAR_H, BAR_H, BAR_H);
-        g2.setStroke(new BasicStroke(1));
-
-        g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-        fm = g2.getFontMetrics();
-        String hp = entity.getCurrentHp() + " / " + entity.getMaxHp();
-        int hx = rightAlign ? barX + BAR_W - fm.stringWidth(hp) : barX;
-        g2.setColor(new Color(220, 220, 220));
-        g2.drawString(hp, hx, by + BAR_H + 13);
-
-        if (entity instanceof Shielded s && s.getShieldHp() > 0) {
-            double shieldPct = Math.min(1.0, (double) s.getShieldHp() / entity.getMaxHp());
-            int shieldW = Math.max(4, (int)(BAR_W * shieldPct));
-            g2.setColor(new Color(80, 130, 255, 150));
-            g2.fillRoundRect(barX, by, shieldW, BAR_H, BAR_H, BAR_H);
-            g2.setColor(new Color(160, 190, 255, 60));
-            g2.fillRoundRect(barX, by, shieldW, BAR_H / 2, BAR_H, BAR_H);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-            fm = g2.getFontMetrics();
-            String shieldStr = "Shield: " + s.getShieldHp();
-            int shx = rightAlign ? barX + BAR_W - fm.stringWidth(shieldStr) : barX;
-            g2.setColor(new Color(130, 170, 255));
-            g2.drawString(shieldStr, shx, by + BAR_H + 26);
-        }
+    private void drawHudEntry(Graphics2D g2, Entity entity, int barX, boolean rightAlign) {
+        // Note: barY here is 16 (vs 12 in BattlePanel/TowerBattlePanel) — a
+        // 2px cosmetic difference from before this panel was consolidated
+        // onto the shared renderer. Not worth keeping a separate code path
+        // over; pass a different barY here if you want to restore it exactly.
+        BattleUI.drawHpBar(g2, entity, barX, 16, BAR_W, BAR_H, rightAlign,
+                new BattleUI.HpBarColors(BAR_GREEN, BAR_YELLOW, BAR_RED, BAR_EMPTY));
     }
 
     // ── Draw: intro text ──────────────────────────────────────────────────────
@@ -564,28 +466,6 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
         g2.drawString(text, tx + 3, ty + 3);
         g2.setColor(new Color(col.getRed(), col.getGreen(), col.getBlue(), introAlpha));
         g2.drawString(text, tx, ty);
-    }
-
-    // ── Draw: floating text ───────────────────────────────────────────────────
-
-    private void drawFloatingText(Graphics2D g2, FloatingText ft) {
-        if (ft.isMiss) {
-            g2.setFont(new Font("SansSerif", Font.BOLD | Font.ITALIC, 15));
-        } else {
-            g2.setFont(new Font("SansSerif", Font.BOLD, ft.isCrit ? 20 : 15));
-        }
-        FontMetrics fm = g2.getFontMetrics();
-        int tw = fm.stringWidth(ft.text);
-        int dx = ft.leftAnchored ? (int) ft.x : (int) ft.x - tw / 2;
-        g2.setColor(new Color(0, 0, 0, ft.alpha / 3));
-        g2.drawString(ft.text, dx + 1, (int) ft.y + 1);
-        Color c = ft.isMiss       ? new Color(200, 200, 200, ft.alpha)
-                : ft.isHeal       ? new Color(80,  230, 80,  ft.alpha)
-                : ft.isPassiveDmg ? new Color(80,  150, 255, ft.alpha)
-                : ft.isCrit       ? new Color(255, 215, 0,   ft.alpha)
-                :                   new Color(255, 80,  80,  ft.alpha);
-        g2.setColor(c);
-        g2.drawString(ft.text, dx, (int) ft.y);
     }
 
     // ── Draw: result overlay ──────────────────────────────────────────────────
