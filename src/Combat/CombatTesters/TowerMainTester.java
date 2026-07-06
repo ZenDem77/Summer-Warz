@@ -147,6 +147,7 @@ public class TowerMainTester {
             @Override public void onEnemyAttack (String log, int dmg, boolean crit, boolean miss) {}
             @Override public void onPassive(String log, Entities.Entity owner, int amt, boolean heal) {}
             @Override public void onPassiveMiss(String log, Entities.Entity owner, Entities.Entity target, String passiveName) {}
+            @Override public void onSpecialHit(String log, Entities.Entity owner, Entities.Entity target, int amount, boolean isCrit) {}
             @Override public void onFighterEnter(boolean isPlayer, Entities.Entity fighter, int remaining) {}
         });
 

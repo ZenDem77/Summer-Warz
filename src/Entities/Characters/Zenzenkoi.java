@@ -141,7 +141,7 @@ public class Zenzenkoi extends Character {
                 String desc = (isCrit ? "★ CRIT! " : "")
                         + actual + " dmg at 25% HP (100 + 250% ATK)"
                         + (isCrit ? "!" : "");
-                ctx.battle.notifyPassive(ctx.owner, target, getName(), desc, actual, false);
+                ctx.battle.notifySpecialHit(ctx.owner, target, getName(), desc, actual, isCrit);
                 ctx.battle.checkEndPublic();
             }
         };

@@ -40,20 +40,33 @@ public class BattleUI {
     private BattleUI() {} // never instantiated
 
     // ── Floating combat text ─────────────────────────────────────────────────
+
+    /**
+     * FloatingText — a single rising, fading damage/heal/miss/block number.
+     *
+     * @param tickMs how often (ms) the owning panel's render timer fires —
+     *               needed here to convert DURATION_MS into a tick count.
+     */
     public static class FloatingText {
         static final int DURATION_MS = 700;
         static final int RISE_PX     = 40;
         public String text; public float x, y; public int alpha = 255;
-        public boolean isCrit, isHeal, isPassiveDmg, isMiss, leftAnchored;
+        public boolean isCrit, isHeal, isPassiveDmg, isMiss, leftAnchored, isSpecialHit;
         int ticksLeft; float dy; int dAlpha;
 
         public FloatingText(String text, float x, float y,
                             boolean isCrit, boolean isHeal, boolean isPassiveDmg,
                             boolean isMiss, boolean leftAnchored, int tickMs) {
+            this(text, x, y, isCrit, isHeal, isPassiveDmg, isMiss, leftAnchored, false, tickMs);
+        }
+
+        public FloatingText(String text, float x, float y,
+                            boolean isCrit, boolean isHeal, boolean isPassiveDmg,
+                            boolean isMiss, boolean leftAnchored, boolean isSpecialHit, int tickMs) {
             this.text = text; this.x = x; this.y = y;
             this.isCrit = isCrit; this.isHeal = isHeal;
             this.isPassiveDmg = isPassiveDmg; this.isMiss = isMiss;
-            this.leftAnchored = leftAnchored;
+            this.leftAnchored = leftAnchored; this.isSpecialHit = isSpecialHit;
             int total = DURATION_MS / tickMs;
             ticksLeft = total; dy = (float) RISE_PX / total; dAlpha = 255 / total;
         }
@@ -69,18 +82,30 @@ public class BattleUI {
 
     /** Draws a single FloatingText with its drop shadow and color-coded fill. */
     public static void drawFloatingText(Graphics2D g2, FloatingText ft) {
-        g2.setFont(new Font("SansSerif", ft.isMiss ? Font.BOLD | Font.ITALIC : Font.BOLD,
-                ft.isCrit ? 20 : 15));
+        // Font size:
+        //   special hit + crit  → 24 (large, commanding)
+        //   normal crit         → 20
+        //   special hit no crit → 15 (same as normal, per design)
+        //   miss / normal       → 15
+        int fontSize = (ft.isSpecialHit && ft.isCrit) ? 24
+                : ft.isCrit                      ? 20
+                : 15;
+        int style = ft.isMiss ? Font.BOLD | Font.ITALIC : Font.BOLD;
+        g2.setFont(new Font("SansSerif", style, fontSize));
         FontMetrics fm = g2.getFontMetrics();
         int tw = fm.stringWidth(ft.text);
         int dx = ft.leftAnchored ? (int) ft.x : (int) ft.x - tw / 2;
+        // Drop shadow
         g2.setColor(new Color(0, 0, 0, ft.alpha / 3));
         g2.drawString(ft.text, dx + 1, (int) ft.y + 1);
-        Color c = ft.isMiss       ? new Color(200, 200, 200, ft.alpha)
-                : ft.isHeal       ? new Color(80,  230, 80,  ft.alpha)
-                : ft.isPassiveDmg ? new Color(80,  150, 255, ft.alpha)
-                : ft.isCrit       ? new Color(255, 215, 0,   ft.alpha)
-                :                   new Color(255, 80,  80,  ft.alpha);
+        // Fill color
+        Color c = ft.isMiss                      ? new Color(200, 200, 200, ft.alpha)  // grey
+                : ft.isHeal                      ? new Color(80,  230, 80,  ft.alpha)  // green
+                : ft.isSpecialHit && ft.isCrit   ? new Color(255, 215, 0,   ft.alpha)  // gold
+                : ft.isSpecialHit                ? new Color(255, 80,  80,  ft.alpha)  // red (no crit)
+                : ft.isPassiveDmg                ? new Color(80,  150, 255, ft.alpha)  // blue (generic passive)
+                : ft.isCrit                      ? new Color(255, 215, 0,   ft.alpha)  // gold (normal crit)
+                :                                  new Color(255, 80,  80,  ft.alpha); // red (normal)
         g2.setColor(c);
         g2.drawString(ft.text, dx, (int) ft.y);
     }
@@ -130,6 +155,21 @@ public class BattleUI {
             sy = spriteY - 10;
         }
         texts.add(new FloatingText(txt, sx, sy, false, isHeal, !isHeal, false, leftAnchored, tickMs));
+    }
+
+    /**
+     * Spawns a special-hit popup — used for abilities like Zenzenkoi's
+     * Last Stand Strike that should visually stand out from generic passive damage.
+     *
+     * Colors:    crit  → gold,  no crit → red
+     * Text size: crit  → large, no crit → normal (same as a regular hit)
+     * Text format: "dmg!" on crit, "dmg" otherwise (caller appends the "!")
+     */
+    public static void spawnSpecialHitPopup(List<FloatingText> texts, int spriteX, int spriteY,
+                                            int spriteW, int dmg, boolean isCrit, int tickMs) {
+        String txt = "-" + dmg + (isCrit ? "!" : "");
+        texts.add(new FloatingText(txt, spriteX + spriteW / 2f, spriteY - 10,
+                isCrit, false, false, false, false, true, tickMs));
     }
 
     // ── Sprite positioning ───────────────────────────────────────────────────

@@ -26,6 +26,8 @@ public class Battle implements IBattle {
         void onPassive(String logEntry, Entity owner, int amount, boolean isHeal);
         /** Fired when a passive's true-damage attack misses (accuracy roll failed). */
         void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName);
+        /** Fired when a passive deals a special hit (distinct visual from generic passive damage). */
+        void onSpecialHit(String logEntry, Entity owner, Entity target, int amount, boolean isCrit);
         /** Fired when the active fighter on a side changes (next fighter enters). */
         void onFighterEnter(boolean isPlayer, Entity fighter, int remaining);
         void onBattleEnd(BattleState result);
@@ -427,6 +429,20 @@ public class Battle implements IBattle {
     public void notifyPassiveMiss(Entity owner, Entity target, String passiveName) {
         String log = "[" + passiveName + "] " + owner.getName() + "'s attack missed " + target.getName() + "!";
         for (BattleListener l : listeners) l.onPassiveMiss(log, owner, target, passiveName);
+    }
+
+    @Override
+    public void notifySpecialHit(Entity owner, Entity target, String passiveName,
+                                 String effectDesc, int amount, boolean isCrit) {
+        // Track damage contribution the same way notifyPassive does for player characters
+        if (amount > 0 && owner instanceof Character c) {
+            trackDamage(c, amount);
+        }
+        String log = "[" + passiveName + "] " + (isCrit ? "★ CRIT! " : "")
+                + owner.getName() + " — " + effectDesc
+                + " (" + target.getName() + ": "
+                + target.getCurrentHp() + "/" + target.getMaxHp() + " HP)";
+        for (BattleListener l : listeners) l.onSpecialHit(log, owner, target, amount, isCrit);
     }
 
     @Override

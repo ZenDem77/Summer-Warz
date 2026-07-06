@@ -27,6 +27,9 @@ public interface IBattle {
 
     void notifyPassiveMiss(Entity owner, Entity target, String passiveName);
 
+    void notifySpecialHit(Entity owner, Entity target, String passiveName,
+                          String effectDesc, int amount, boolean isCrit);
+
     default double getDamageMultiplier() { return 1.0; }
 
     default void registerPausableTimer(javax.swing.Timer timer) {}
