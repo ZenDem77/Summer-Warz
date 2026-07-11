@@ -40,13 +40,6 @@ public class BattleUI {
     private BattleUI() {} // never instantiated
 
     // ── Floating combat text ─────────────────────────────────────────────────
-
-    /**
-     * FloatingText — a single rising, fading damage/heal/miss/block number.
-     *
-     * @param tickMs how often (ms) the owning panel's render timer fires —
-     *               needed here to convert DURATION_MS into a tick count.
-     */
     public static class FloatingText {
         static final int DURATION_MS = 700;
         static final int RISE_PX     = 40;

@@ -281,6 +281,18 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     }
 
     @Override
+    public void onSpecialHit(String log, Entity owner, Entity target, int amount, boolean isCrit) {
+        SwingUtilities.invokeLater(() -> {
+            boolean targetIsF1 = (target == battle.getFighter1());
+            if (targetIsF1) { f1Flashing = true; f1FlashTick = 0; }
+            else            { f2Flashing = true; f2FlashTick = 0; }
+            Point sp = spriteScreenPos(targetIsF1 ? f1WorldX : f2WorldX,
+                    targetIsF1 ? F1_WORLD_Y : F2_WORLD_Y);
+            BattleUI.spawnSpecialHitPopup(floatingTexts, sp.x, sp.y, SPRITE_W, amount, isCrit, TICK_MS);
+        });
+    }
+
+    @Override
     public void onBattleEnd(CharacterBattle.BattleState result) {
         SwingUtilities.invokeLater(() -> {
             if (f1AttackTimer != null) f1AttackTimer.stop();

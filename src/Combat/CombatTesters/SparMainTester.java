@@ -47,6 +47,7 @@ public class SparMainTester {
                 @Override public void onFighter2Attack(String log, int dmg, boolean crit, boolean miss) {}
                 @Override public void onPassive(String log, Entities.Entity owner, int amt, boolean heal) {}
                 @Override public void onPassiveMiss(String log, Entities.Entity owner, Entities.Entity target, String passiveName) {}
+                @Override public void onSpecialHit(String log, Entities.Entity owner, Entities.Entity target, int amount, boolean isCrit) {}
             });
 
             window.showPanel(new CharacterBattlePanel(battle));
