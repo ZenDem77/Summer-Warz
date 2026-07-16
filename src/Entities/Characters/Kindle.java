@@ -10,14 +10,12 @@ import Entities.Sprites.SpriteSet;
 public class Kindle extends Character {
 
     // ── Passive 1 constants ───────────────────────────────────────────────────
-    private static final int PASSIVE_1_BONUS_DAMAGE = 20;
-    private static final int PASSIVE_1_INTERVAL_MS  = 3000;
-    private final int        PASSIVE_1_EXTRA_DMG    = (int)(getEffectiveAtk() * 0.30);
+    private static final double PASSIVE_1_ATK_PERCENT  = 0.30;
+    private static final int    PASSIVE_1_INTERVAL_MS  = 3000;
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
-    private static final int PASSIVE_2_BONUS_DAMAGE = 5;
-    private static final int PASSIVE_2_INTERVAL_MS  = 500;
-    private final int        PASSIVE_2_EXTRA_DMG    = (int)(getEffectiveAtk() * 0.20);
+    private static final double PASSIVE_2_ATK_PERCENT  = 0.20;
+    private static final int    PASSIVE_2_INTERVAL_MS  = 500;
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_3_BONUS_DAMAGE = 7;
@@ -41,19 +39,21 @@ public class Kindle extends Character {
 
     private Passive passive1() {
         return new Passive() {
-            @Override public String getName()        { return "Shadow Surge"; }
-            @Override public String getDescription() { return "Deal " + (PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG) + " True Damage every " + msToSec(PASSIVE_1_INTERVAL_MS); }
-            @Override public int    getIntervalMs()  { return PASSIVE_1_INTERVAL_MS; }
+            @Override public String getName()        { return "Ember Surge"; }
+            @Override public String getDescription() { return "Deal 30% Total ATK true damage every " + msToSec(PASSIVE_1_INTERVAL_MS); }
+            @Override public int getIntervalMs() { return PASSIVE_1_INTERVAL_MS; }
 
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG);
+                int dmg = (int)(PASSIVE_1_ATK_PERCENT * ctx.owner.getEffectiveAtk());
+                DamageResult result = ctx.owner.calculateTrueDamage(dmg);
                 if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
-                int dmg = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
-                int actual = Math.min(dmg, target.getCurrentHp());
-                target.takeDamage(dmg);
-                ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
+                int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                int actual = Math.min(scaled, target.getCurrentHp());
+                target.takeDamage(scaled);
+                ctx.battle.notifyPassive(ctx.owner, target, getName(),
+                        actual + " true damage ", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
@@ -61,19 +61,21 @@ public class Kindle extends Character {
 
     private Passive passive2() {
         return new Passive() {
-            @Override public String getName()        { return "Dark Echo"; }
-            @Override public String getDescription() { return "Deal " + (PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG) + " True Damage every " + msToSec(PASSIVE_2_INTERVAL_MS); }
-            @Override public int    getIntervalMs()  { return PASSIVE_2_INTERVAL_MS; }
+            @Override public String getName()        { return "Cinder Echo"; }
+            @Override public String getDescription() { return "Deal 20% Total ATK true damage every " + msToSec(PASSIVE_2_INTERVAL_MS); }
+            @Override public int getIntervalMs() { return PASSIVE_2_INTERVAL_MS; }
 
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG);
+                int dmg = (int)(PASSIVE_2_ATK_PERCENT * ctx.owner.getEffectiveAtk());
+                DamageResult result = ctx.owner.calculateTrueDamage(Math.max(1, dmg));
                 if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
-                int dmg = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
-                int actual = Math.min(dmg, target.getCurrentHp());
-                target.takeDamage(dmg);
-                ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
+                int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                int actual = Math.min(scaled, target.getCurrentHp());
+                target.takeDamage(scaled);
+                ctx.battle.notifyPassive(ctx.owner, target, getName(),
+                        actual + " true damage ", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
@@ -81,22 +83,24 @@ public class Kindle extends Character {
 
     private Passive passive3() {
         return new Passive() {
-            @Override public String getName()        { return "Shadow Mend"; }
-            @Override public String getDescription() { return "Deal " + PASSIVE_3_BONUS_DAMAGE + " True Damage and heal " + PASSIVE_3_HEAL_AMOUNT + " HP every " + msToSec(PASSIVE_3_INTERVAL_MS); }
-            @Override public int    getIntervalMs()  { return PASSIVE_3_INTERVAL_MS; }
+            @Override public String getName()        { return "Ember Mend"; }
+            @Override public String getDescription() {
+                return "Deal " + PASSIVE_3_BONUS_DAMAGE + " true damage and heal "
+                        + PASSIVE_3_HEAL_AMOUNT + " HP every " + msToSec(PASSIVE_3_INTERVAL_MS);
+            }
+            @Override public int getIntervalMs() { return PASSIVE_3_INTERVAL_MS; }
 
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_3_BONUS_DAMAGE);
                 if (!result.isMiss) {
-                    int dmg = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
-                    int actual = Math.min(dmg, target.getCurrentHp());
-                    target.takeDamage(dmg);
-                    ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);
+                    int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                    int actual = Math.min(scaled, target.getCurrentHp());
+                    target.takeDamage(scaled);
+                    ctx.battle.notifyPassive(ctx.owner, target, getName(),
+                            actual + " true damage ", actual, false);
                     ctx.battle.checkEndPublic();
-                } else {
-                    ctx.battle.notifyPassiveMiss(ctx.owner, target, getName());
                 }
                 if (ctx.owner.isAlive()) {
                     int before = ctx.owner.getCurrentHp();
