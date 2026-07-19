@@ -8,9 +8,9 @@ import Entities.Characters.Xyniz;
 import Entities.Characters.Kindle;
 import Entities.Characters.Zayir;
 import Entities.Characters.Zenzenkoi;
-import Entities.Weapons.IronEdge;
+import Entities.Weapons.Saber;
 import Entities.Weapons.Weapon;
-import Entities.Weapons.WolvesGravestone;
+import Entities.Weapons.Sword;
 import GameMain.GamePanel;
 import GameModes.TowerOfSuffering.Floor;
 import GameModes.TowerOfSuffering.FloorMode;
@@ -33,10 +33,10 @@ public class TowerMainTester {
             List<Character> team = List.of(xyniz, zayir, kindle, zenzenkoi);
 
             // ── Weapons ───────────────────────────────────────────────────────
-            Weapon weaponZe = new WolvesGravestone();
-            Weapon weaponZ = new IronEdge();
-            Weapon weaponK = new IronEdge();
-            Weapon weapon  = new WolvesGravestone();
+            Weapon weaponZe = new Sword();
+            Weapon weaponZ = new Saber();
+            Weapon weaponK = new Saber();
+            Weapon weapon  = new Sword();
 
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
             weaponZ.equip(kindle); weaponZ.setWeaponLevel(10);
