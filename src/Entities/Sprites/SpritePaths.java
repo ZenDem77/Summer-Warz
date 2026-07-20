@@ -46,6 +46,12 @@ public class SpritePaths {
     public static final String ZENZENKOI_ATTACK = "";
     public static final String ZENZENKOI_DEAD   = "";
 
+    // ── Kouzen ────────────────────────────────────────────────────────────────
+    public static final String KOUZEN_IDLE   = "";
+    public static final String KOUZEN_RUN    = "";
+    public static final String KOUZEN_ATTACK = "";
+    public static final String KOUZEN_DEAD   = "";
+
     // ──────────────────────────────────────────────────────────────────────────
     // ── BOSSES ──
     // ──────────────────────────────────────────────────────────────────────────
