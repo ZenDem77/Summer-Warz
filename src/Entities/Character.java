@@ -13,7 +13,7 @@ public abstract class Character extends Entity {
     public static final int PASSIVE_2_LEVEL = 20;
     public static final int PASSIVE_3_LEVEL = 30;
 
-    // ── Level thresholds for artifact slots ──────────────────────────────────
+    // ── Level thresholds for artifact slots ──────────────────────────────────.
     public static final int ARTIFACT_SLOT_1_LEVEL = 1;
     public static final int ARTIFACT_SLOT_2_LEVEL = 10;
     public static final int ARTIFACT_SLOT_3_LEVEL = 20;
@@ -81,12 +81,14 @@ public abstract class Character extends Entity {
         this.weaponAtk            = primaryAtk;
         this.weaponSecondaryType  = secondaryType;
         this.weaponSecondaryValue = secondaryValue;
-        // ATK / ATK_PERCENT and HP_PERCENT secondary stats are handled inside
-        // getTotalAtk() / getMaxHp() respectively — not applied to fields directly.
+        // ATK / ATK_PERCENT, HP_PERCENT and DEF_PERCENT secondary stats are handled
+        // inside getTotalAtk() / getMaxHp() / getDefense() respectively —
+        // not applied to fields directly.
         if (secondaryType != null
                 && secondaryType != StatType.ATK
                 && secondaryType != StatType.ATK_PERCENT
-                && secondaryType != StatType.HP_PERCENT) {
+                && secondaryType != StatType.HP_PERCENT
+                && secondaryType != StatType.DEF_PERCENT) {
             applyStatBonus(secondaryType, secondaryValue);
         }
     }
@@ -95,7 +97,8 @@ public abstract class Character extends Entity {
         if (weaponSecondaryType != null
                 && weaponSecondaryType != StatType.ATK
                 && weaponSecondaryType != StatType.ATK_PERCENT
-                && weaponSecondaryType != StatType.HP_PERCENT) {
+                && weaponSecondaryType != StatType.HP_PERCENT
+                && weaponSecondaryType != StatType.DEF_PERCENT) {
             removeStatBonus(weaponSecondaryType, weaponSecondaryValue);
         }
         weaponAtk            = 0;
@@ -195,10 +198,11 @@ public abstract class Character extends Entity {
 
     @Override
     public int getDefense() {
-        int    baseDef    = super.getDefense();
-        double defPercent = getArtifactSubstatTotal(StatType.DEF_PERCENT);
-        int    flatDef    = (int) getArtifactSubstatTotal(StatType.DEF);
-        return (int)(baseDef * (1.0 + defPercent)) + flatDef;
+        int    baseDef         = super.getDefense();
+        double weaponDefPct    = (weaponSecondaryType == StatType.DEF_PERCENT) ? weaponSecondaryValue : 0.0;
+        double artifactDefPct  = getArtifactSubstatTotal(StatType.DEF_PERCENT);
+        int    flatDef         = (int) getArtifactSubstatTotal(StatType.DEF);
+        return (int)(baseDef * (1.0 + weaponDefPct + artifactDefPct)) + flatDef;
     }
 
     @Override
