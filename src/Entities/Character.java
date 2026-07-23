@@ -81,8 +81,12 @@ public abstract class Character extends Entity {
         this.weaponAtk            = primaryAtk;
         this.weaponSecondaryType  = secondaryType;
         this.weaponSecondaryValue = secondaryValue;
-
-        if (secondaryType != null && secondaryType != StatType.ATK && secondaryType != StatType.ATK_PERCENT) {
+        // ATK / ATK_PERCENT and HP_PERCENT secondary stats are handled inside
+        // getTotalAtk() / getMaxHp() respectively — not applied to fields directly.
+        if (secondaryType != null
+                && secondaryType != StatType.ATK
+                && secondaryType != StatType.ATK_PERCENT
+                && secondaryType != StatType.HP_PERCENT) {
             applyStatBonus(secondaryType, secondaryValue);
         }
     }
@@ -90,7 +94,8 @@ public abstract class Character extends Entity {
     public void removeWeaponStats() {
         if (weaponSecondaryType != null
                 && weaponSecondaryType != StatType.ATK
-                && weaponSecondaryType != StatType.ATK_PERCENT) {
+                && weaponSecondaryType != StatType.ATK_PERCENT
+                && weaponSecondaryType != StatType.HP_PERCENT) {
             removeStatBonus(weaponSecondaryType, weaponSecondaryValue);
         }
         weaponAtk            = 0;
@@ -198,10 +203,11 @@ public abstract class Character extends Entity {
 
     @Override
     public int getMaxHp() {
-        int    baseMaxHp = super.getMaxHp();
-        double hpPercent = getArtifactSubstatTotal(StatType.HP_PERCENT);
-        int    flatHp    = (int) getArtifactSubstatTotal(StatType.HP);
-        return (int)(baseMaxHp * (1.0 + hpPercent)) + flatHp;
+        int    baseMaxHp      = super.getMaxHp();
+        double weaponHpPct    = (weaponSecondaryType == StatType.HP_PERCENT) ? weaponSecondaryValue : 0.0;
+        double artifactHpPct  = getArtifactSubstatTotal(StatType.HP_PERCENT);
+        int    flatHp         = (int) getArtifactSubstatTotal(StatType.HP);
+        return (int)(baseMaxHp * (1.0 + weaponHpPct + artifactHpPct)) + flatHp;
     }
 
     @Override
