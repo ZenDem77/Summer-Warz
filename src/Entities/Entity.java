@@ -72,6 +72,7 @@ public abstract class Entity {
 
     // ── Sprite hook ───────────────────────────────────────────────────────────
     public SpriteSet getSpriteSet() { return SpriteSet.NONE; }
+    public boolean isTrueDamageImmune() { return false; }
     public double getSizeScale() { return 1.0; }
 
     // ── Effective ATK ─────────────────────────────────────────────────────────

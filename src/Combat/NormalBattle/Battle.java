@@ -28,6 +28,8 @@ public class Battle implements IBattle {
         void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName);
         /** Fired when a passive deals a special hit (distinct visual from generic passive damage). */
         void onSpecialHit(String logEntry, Entity owner, Entity target, int amount, boolean isCrit);
+        /** Fired when a passive's true damage is blocked by the target's immunity. */
+        void onImmune(String logEntry, Entity owner, Entity target, String passiveName);
         /** Fired when the active fighter on a side changes (next fighter enters). */
         void onFighterEnter(boolean isPlayer, Entity fighter, int remaining);
         void onBattleEnd(BattleState result);
@@ -429,6 +431,12 @@ public class Battle implements IBattle {
     public void notifyPassiveMiss(Entity owner, Entity target, String passiveName) {
         String log = "[" + passiveName + "] " + owner.getName() + "'s attack missed " + target.getName() + "!";
         for (BattleListener l : listeners) l.onPassiveMiss(log, owner, target, passiveName);
+    }
+
+    @Override
+    public void notifyImmune(Entity owner, Entity target, String passiveName) {
+        String log = "[" + passiveName + "] " + target.getName() + " is immune to true damage!";
+        for (BattleListener l : listeners) l.onImmune(log, owner, target, passiveName);
     }
 
     @Override

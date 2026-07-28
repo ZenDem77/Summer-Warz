@@ -16,8 +16,8 @@ public class SparMainTester {
             GamePanel window = new GamePanel();
 
             // ── Choose the two fighters ────────────────────────────────────────
-            Character fighter1 = new Zayir();
-            Character fighter2 = new Zenzenkoi();
+            Character fighter1 = new Zenzenkoi();
+            Character fighter2 = new Zayir();
 
             // ── Create SparMode ───────────────────────────────────────────────
             SparMode mode = new SparMode(fighter1, fighter2);
@@ -48,6 +48,7 @@ public class SparMainTester {
                 @Override public void onPassive(String log, Entities.Entity owner, int amt, boolean heal) {}
                 @Override public void onPassiveMiss(String log, Entities.Entity owner, Entities.Entity target, String passiveName) {}
                 @Override public void onSpecialHit(String log, Entities.Entity owner, Entities.Entity target, int amount, boolean isCrit) {}
+                @Override public void onImmune(String log, Entities.Entity owner, Entities.Entity target, String passiveName) {}
             });
 
             window.showPanel(new CharacterBattlePanel(battle));

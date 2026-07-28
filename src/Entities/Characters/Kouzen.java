@@ -8,26 +8,6 @@ import Entities.Sprites.SpriteSet;
 import java.util.EnumSet;
 import java.util.Set;
 
-/**
- * Kouzen — playable character.
- *
- * Stats: ("Kouzen", 370, 15, 10, 800ms, 0.05, 0.50, level 1)
- *
- * Passive 1 (lv 10) — Iron Veil:
- *   At the start of battle, generate a shield equal to 80% of max HP.
- *   The shield absorbs incoming damage before HP. Once per battle.
- *   Absorbs first, before passive 2's damage reduction applies.
- *
- * Passive 2 (lv 20) — Composite Guard:
- *   Reduce all incoming damage by 12% (applied after shield absorption).
- *   Minimum 1 damage per hit.
- *
- * Passive 3 (lv 30) — Reinforced Will:
- *   Gain a shield equal to 10% of max HP every 2 seconds. Stacks freely
- *   with the passive 1 shield and other passive 3 stacks.
- *
- * Implements Shielded so the shield bar renders automatically in all panels.
- */
 public class Kouzen extends Character implements Shielded {
 
     // ── Passive 1 constants ───────────────────────────────────────────────────
@@ -69,13 +49,6 @@ public class Kouzen extends Character implements Shielded {
         return new Passive[]{ passive1(), passive2(), passive3() };
     }
 
-    /**
-     * Passive 1 — Iron Veil
-     * Grants a shield equal to 80% of max HP at battle start (once per battle).
-     * Also responds to ON_TAKE_DAMAGE to absorb incoming hits into the shield
-     * before they reach HP — fires first (P1 is index 0) so reduction (P2)
-     * applies only to damage that overflows past the shield.
-     */
     private Passive passive1() {
         return new Passive() {
             private boolean triggered = false;
@@ -124,12 +97,6 @@ public class Kouzen extends Character implements Shielded {
         };
     }
 
-    /**
-     * Passive 2 — Composite Guard
-     * Reduces all incoming damage by 12% (minimum 1).
-     * Applied after shield absorption (P1 fires first), so only damage
-     * that overflows past the shield receives the reduction.
-     */
     private Passive passive2() {
         return new Passive() {
             @Override public String getName() { return "Composite Guard"; }
@@ -154,12 +121,6 @@ public class Kouzen extends Character implements Shielded {
         };
     }
 
-    /**
-     * Passive 3 — Reinforced Will
-     * Generates a shield equal to 10% of max HP every 2 seconds.
-     * Stacks freely — adds to whatever shield HP is currently present
-     * (including leftover P1 shield and earlier P3 stacks).
-     */
     private Passive passive3() {
         return new Passive() {
             @Override public String getName() { return "Reinforced Will"; }

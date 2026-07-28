@@ -6,6 +6,9 @@ import Entities.Artifacts.Artifact;
 import Entities.Bosses.*;
 import Entities.Character;
 import Entities.Characters.*;
+import Entities.Enemies.ExperimentalSubject;
+import Entities.Enemies.IndestructibleSubject;
+import Entities.Enemies.UnknownSubject;
 import Entities.Enemy;
 import Entities.Weapons.*;
 import GameMain.GamePanel;
@@ -64,7 +67,7 @@ public class EnemyMainTester {
             // ═══════════════════════════════════════════════════════════════════
             //  ENEMY
             // ═══════════════════════════════════════════════════════════════════
-            Enemy enemy = new Shogun();
+            Enemy enemy = new IndestructibleSubject(7);
 
             // ─────────────────────────────────────────────────────────────────
             Battle battle = new Battle(team, List.of(enemy));
@@ -81,6 +84,7 @@ public class EnemyMainTester {
                 @Override public void onPassive(String log, Entities.Entity owner, int amt, boolean heal) {}
                 @Override public void onPassiveMiss(String log, Entities.Entity owner, Entities.Entity target, String name) {}
                 @Override public void onSpecialHit(String log, Entities.Entity owner, Entities.Entity target, int amount, boolean isCrit) {}
+                @Override public void onImmune(String log, Entities.Entity owner, Entities.Entity target, String passiveName) {}
                 @Override public void onFighterEnter(boolean isPlayer, Entities.Entity fighter, int remaining) {}
             });
 

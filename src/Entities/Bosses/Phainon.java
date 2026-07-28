@@ -4,6 +4,8 @@ import Entities.Enemy;
 import Entities.PassiveHandler.*;
 import Entities.Sprites.*;
 
+// ─── BOSS 1 ───────────────────────────────────────────────────────────────────
+
 public class Phainon extends Enemy {
 
     // ── Passive constants ─────────────────────────────────────────────────────

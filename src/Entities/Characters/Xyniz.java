@@ -54,6 +54,10 @@ public class Xyniz extends Character {
                     return;
                 }
                 int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                if (target.isTrueDamageImmune()) {
+                    ctx.battle.notifyImmune(ctx.owner, target, getName());
+                    return;
+                }
                 int actual = Math.min(scaled, target.getCurrentHp());
                 target.takeDamage(scaled);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
@@ -99,6 +103,10 @@ public class Xyniz extends Character {
                     return;
                 }
                 int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                if (target.isTrueDamageImmune()) {
+                    ctx.battle.notifyImmune(ctx.owner, target, getName());
+                    return;
+                }
                 int actual = Math.min(scaled, target.getCurrentHp());
                 target.takeDamage(scaled);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),

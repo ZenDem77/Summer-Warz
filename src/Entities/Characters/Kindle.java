@@ -50,6 +50,10 @@ public class Kindle extends Character {
                 DamageResult result = ctx.owner.calculateTrueDamage(dmg);
                 if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                if (target.isTrueDamageImmune()) {
+                    ctx.battle.notifyImmune(ctx.owner, target, getName());
+                    return;
+                }
                 int actual = Math.min(scaled, target.getCurrentHp());
                 target.takeDamage(scaled);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
@@ -72,6 +76,10 @@ public class Kindle extends Character {
                 DamageResult result = ctx.owner.calculateTrueDamage(Math.max(1, dmg));
                 if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                if (target.isTrueDamageImmune()) {
+                    ctx.battle.notifyImmune(ctx.owner, target, getName());
+                    return;
+                }
                 int actual = Math.min(scaled, target.getCurrentHp());
                 target.takeDamage(scaled);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
@@ -96,11 +104,15 @@ public class Kindle extends Character {
                 DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_3_BONUS_DAMAGE);
                 if (!result.isMiss) {
                     int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
-                    int actual = Math.min(scaled, target.getCurrentHp());
-                    target.takeDamage(scaled);
-                    ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                            actual + " true damage ", actual, false);
-                    ctx.battle.checkEndPublic();
+                    if (target.isTrueDamageImmune()) {
+                        ctx.battle.notifyImmune(ctx.owner, target, getName());
+                    } else {
+                        int actual = Math.min(scaled, target.getCurrentHp());
+                        target.takeDamage(scaled);
+                        ctx.battle.notifyPassive(ctx.owner, target, getName(),
+                                actual + " true damage ", actual, false);
+                        ctx.battle.checkEndPublic();
+                    }
                 }
                 if (ctx.owner.isAlive()) {
                     int before = ctx.owner.getCurrentHp();

@@ -33,6 +33,8 @@ public class CharacterBattle implements IBattle {
         void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName);
         /** Fired when a passive deals a special hit (e.g. Zenzenkoi's Last Stand Strike). */
         void onSpecialHit(String logEntry, Entity owner, Entity target, int amount, boolean isCrit);
+        /** Fired when a passive's true damage is blocked by the target's immunity. */
+        void onImmune(String logEntry, Entity owner, Entity target, String passiveName);
         void onBattleEnd(BattleState result);
     }
 
@@ -201,6 +203,12 @@ public class CharacterBattle implements IBattle {
                 + " (" + target.getName() + ": "
                 + target.getCurrentHp() + "/" + target.getMaxHp() + " HP)";
         for (BattleListener l : listeners) l.onSpecialHit(log, owner, target, amount, isCrit);
+    }
+
+    @Override
+    public void notifyImmune(Entity owner, Entity target, String passiveName) {
+        String log = "[" + passiveName + "] " + target.getName() + " is immune to true damage!";
+        for (BattleListener l : listeners) l.onImmune(log, owner, target, passiveName);
     }
 
     @Override
