@@ -67,7 +67,7 @@ public class EnemyMainTester {
             // ═══════════════════════════════════════════════════════════════════
             //  ENEMY
             // ═══════════════════════════════════════════════════════════════════
-            Enemy enemy = new IndestructibleSubject(7);
+            Enemy enemy = new Stain();
 
             // ─────────────────────────────────────────────────────────────────
             Battle battle = new Battle(team, List.of(enemy));
