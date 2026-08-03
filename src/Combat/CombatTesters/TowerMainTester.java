@@ -104,8 +104,8 @@ public class TowerMainTester {
         }
 
         // Guard: floors 11+ have no enemies yet
-        if (mode.getCurrentFloorNumber() > 34) {
-            System.out.println("Floors 35+ not yet populated. Test ends here.");
+        if (mode.getCurrentFloorNumber() > 44) {
+            System.out.println("Floors 45+ not yet populated. Test ends here.");
             return;
         }
 
