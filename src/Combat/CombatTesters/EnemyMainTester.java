@@ -6,11 +6,12 @@ import Entities.Artifacts.Artifact;
 import Entities.Bosses.*;
 import Entities.Character;
 import Entities.Characters.*;
-import Entities.Enemies.ExperimentalSubject;
 import Entities.Enemies.IndestructibleSubject;
-import Entities.Enemies.UnknownSubject;
 import Entities.Enemy;
 import Entities.Weapons.*;
+import Entities.Weapons.Attack.Sword;
+import Entities.Weapons.CritRate.Saber;
+import Entities.Weapons.Hp.Staff;
 import GameMain.GamePanel;
 
 import javax.swing.*;
@@ -54,10 +55,10 @@ public class EnemyMainTester {
             Artifact b3 = Artifact.generateRandom();
             Artifact b4 = Artifact.generateRandom();
 
-            kouzen.equipArtifact(0, a1);
-            kouzen.equipArtifact(1, a2);
-            kouzen.equipArtifact(2, a3);
-            kouzen.equipArtifact(3, a4);
+            xyniz.equipArtifact(0, a1);
+            xyniz.equipArtifact(1, a2);
+            xyniz.equipArtifact(2, a3);
+            xyniz.equipArtifact(3, a4);
 
             kindle.equipArtifact(0, b1);
             kindle.equipArtifact(1, b2);

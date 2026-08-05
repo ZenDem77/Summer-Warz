@@ -9,7 +9,7 @@ import java.util.Set;
 
 // ─── BOSS 8 ───────────────────────────────────────────────────────────────────
 
-public class Gouto extends Enemy implements Shielded {
+public class Goliath extends Enemy implements Shielded {
 
     private static final int    PASSIVE_SHIELD_AMOUNT = 1000;
     private static final int    PASSIVE_DEF_GAIN      = 5;
@@ -18,8 +18,8 @@ public class Gouto extends Enemy implements Shielded {
     private boolean triggered  = false;   // ensures shield granted once per battle
     private int     stackedDef = 0;       // bonus DEF accumulated from passive
 
-    public Gouto() {
-        super("Gouto", 15700, 50, 25, 500, 0.95, 2.25);
+    public Goliath() {
+        super("Goliath", 15700, 50, 25, 500, 0.95, 2.25);
     }
 
     // ── Shielded interface ────────────────────────────────────────────────────

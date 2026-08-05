@@ -1,6 +1,7 @@
-package Entities.Weapons;
+package Entities.Weapons.CritRate;
 
 import Entities.StatType;
+import Entities.Weapons.Weapon;
 
 public class Gauntlet extends Weapon {
 

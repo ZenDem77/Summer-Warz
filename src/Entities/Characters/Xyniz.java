@@ -10,7 +10,7 @@ public class Xyniz extends Character {
 
     // ── Passive 1 constants ───────────────────────────────────────────────────
     private static final double PASSIVE_1_ATK_PERCENT  = 0.15;
-    private static final int    PASSIVE_1_INTERVAL_MS  = 1000;
+    private static final int    PASSIVE_1_INTERVAL_MS  = 800;
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
     private static final double PASSIVE_2_HEAL_PERCENT = 0.1;
@@ -18,10 +18,10 @@ public class Xyniz extends Character {
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
     private static final double PASSIVE_3_ATK_PERCENT  = 1.40;
-    private static final int    PASSIVE_3_INTERVAL_MS  = 4000;
+    private static final int    PASSIVE_3_INTERVAL_MS  = 2500;
 
     public Xyniz() {
-        super("Xyniz", 340, 16, 4, 500, 0.05, 0.50, 30);
+        super("Xyniz", 340, 16, 4, 500, 0.05, 1.0, 30);
     }
 
     // ── Passive slots ─────────────────────────────────────────────────────────

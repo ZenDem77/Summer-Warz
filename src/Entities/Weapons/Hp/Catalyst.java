@@ -1,6 +1,7 @@
-package Entities.Weapons;
+package Entities.Weapons.Hp;
 
 import Entities.StatType;
+import Entities.Weapons.Weapon;
 
 public class Catalyst extends Weapon {
 

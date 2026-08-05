@@ -10,15 +10,15 @@ import java.util.Set;
 
 // ─── BOSS 7 ───────────────────────────────────────────────────────────────────
 
-public class Groon extends Enemy {
+public class Brute extends Enemy {
 
     private static final int PASSIVE_DEF_GAIN    = 10;
     private static final int PASSIVE_INTERVAL_MS = 1000;
 
     private int stackedDef = 0;
 
-    public Groon() {
-        super("Groon", 14500, 50, 20, 700, 0.95, 2.25);
+    public Brute() {
+        super("Brute", 14500, 50, 20, 700, 0.95, 2.25);
     }
 
     // ── Defense override ──────────────────────────────────────────────────────

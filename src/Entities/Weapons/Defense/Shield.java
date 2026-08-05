@@ -1,6 +1,7 @@
-package Entities.Weapons;
+package Entities.Weapons.Defense;
 
 import Entities.StatType;
+import Entities.Weapons.Weapon;
 
 public class Shield extends Weapon {
 

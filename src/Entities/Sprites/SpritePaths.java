@@ -56,9 +56,9 @@ public class SpritePaths {
     // ── BOSSES ──
     // ──────────────────────────────────────────────────────────────────────────
 
-    // ── Phainon ───────────────────────────────────────────────────────────────
-     public static final String PHAINON_IDLE   = "/bosses/phainon/phainon_idle.png";
-     public static final String PHAINON_RUN    = "/bosses/phainon/phainon_run.png";
-     public static final String PHAINON_ATTACK = "/bosses/phainon/phainon_attack.png";
-     public static final String PHAINON_DEAD   = "/bosses/phainon/phainon_dead.png";
+    // ── Fiend ───────────────────────────────────────────────────────────────
+     public static final String FIEND_IDLE = "/bosses/phainon/phainon_idle.png";
+     public static final String FIEND_RUN = "/bosses/phainon/phainon_run.png";
+     public static final String FIEND_ATTACK = "/bosses/phainon/phainon_attack.png";
+     public static final String FIEND_DEAD = "/bosses/phainon/phainon_dead.png";
 }

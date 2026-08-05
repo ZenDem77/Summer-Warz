@@ -1,6 +1,7 @@
-package Entities.Weapons;
+package Entities.Weapons.CritDmg;
 
 import Entities.StatType;
+import Entities.Weapons.Weapon;
 
 public class Katana extends Weapon {
 
