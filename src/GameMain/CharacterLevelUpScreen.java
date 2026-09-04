@@ -219,11 +219,10 @@ public class CharacterLevelUpScreen extends JDialog {
                 // Elixir balance at the bottom of sprite box
                 int balance = wallet.getBalance(Currency.ELIXIR);
                 g2.setFont(new Font("Georgia", Font.BOLD, 15));
-                g2.setColor(COL_DEF);
                 String elStr = "Elixir:  " + balance;
                 FontMetrics fm3 = g2.getFontMetrics();
-                g2.drawString(elStr, (getWidth() - fm3.stringWidth(elStr))/2,
-                        getHeight() - 30);
+                g2.setColor(TEXT_DARK);
+                g2.drawString(elStr, (getWidth() - fm3.stringWidth(elStr))/2, getHeight() - 30);
             }
         };
     }
@@ -239,10 +238,10 @@ public class CharacterLevelUpScreen extends JDialog {
 
         // ── Basic Stats box ───────────────────────────────────────────────────
         String[][] basicRows = {
-                { "HP",        character.getCurrentHp() + " / " + character.getMaxHp(), colorHex(COL_HP) },
-                { "Attack",    String.valueOf(character.getTotalAtk()),                  colorHex(COL_ATK) },
-                { "Defense",   String.valueOf(character.getDefense()),                   colorHex(COL_DEF) },
-                { "Atk Speed", (character.getAttackSpeed() / 1000.0) + "s",             colorHex(COL_SPD) },
+                { "HP",        character.getCurrentHp() + " / " + character.getMaxHp(), colorHex(TEXT_MID) },
+                { "Attack",    String.valueOf(character.getTotalAtk()),                  colorHex(TEXT_MID) },
+                { "Defense",   String.valueOf(character.getDefense()),                   colorHex(TEXT_MID) },
+                { "Atk Speed", (character.getAttackSpeed() / 1000.0) + "s",             colorHex(TEXT_MID) },
         };
         int basicH = 36 + basicRows.length * ROW_H + PAD;
         JPanel basicBox = buildStatsBox("BASIC STATS", basicRows, bw, basicH);
@@ -252,10 +251,10 @@ public class CharacterLevelUpScreen extends JDialog {
 
         // ── Advanced Stats box ────────────────────────────────────────────────
         String[][] advRows = {
-                { "Crit Rate",   pct(character.getCritRate()),          colorHex(COL_CRIT)     },
-                { "Crit Damage", "+" + pct(character.getCritDamage()),  colorHex(COL_CRITDMG)  },
-                { "Dmg Bonus",   "+" + pct(character.getDamageBonus()), colorHex(COL_BONUS)    },
-                { "Accuracy",    pct(character.getAccuracy()),          colorHex(COL_ACCURACY) },
+                { "Crit Rate",   pct(character.getCritRate()),          colorHex(TEXT_MID)     },
+                { "Crit Damage", pct(character.getCritDamage()),  colorHex(TEXT_MID)  },
+                { "Dmg Bonus",   pct(character.getDamageBonus()), colorHex(TEXT_MID)    },
+                { "Accuracy",    pct(character.getAccuracy()),          colorHex(TEXT_MID) },
         };
         int advH = 36 + advRows.length * ROW_H + PAD;
         JPanel advBox = buildStatsBox("ADVANCED STATS", advRows, bw, advH);
@@ -312,8 +311,8 @@ public class CharacterLevelUpScreen extends JDialog {
 
                     g2.setFont(new Font("Georgia", Font.BOLD, 15));
                     Color vc = Color.decode(row[2]);
-                    g2.setColor(vc);
                     FontMetrics fm = g2.getFontMetrics();
+                    g2.setColor(vc);
                     g2.drawString(row[1], getWidth() - PAD - fm.stringWidth(row[1]), ry);
 
                     // Subtle row divider
@@ -358,8 +357,8 @@ public class CharacterLevelUpScreen extends JDialog {
 
                     String tag = unlocked ? "UNLOCKED" : "Lv" + unlockLevels[i];
                     g2.setFont(new Font("Georgia", Font.BOLD, 12));
-                    g2.setColor(unlocked ? COL_BONUS : new Color(160, 90, 30));
                     FontMetrics fm = g2.getFontMetrics();
+                    g2.setColor(unlocked ? COL_BONUS : new Color(160, 90, 30));
                     g2.drawString(tag, getWidth() - PAD - fm.stringWidth(tag), ry);
 
                     g2.setColor(new Color(160, 128, 55, 80));
@@ -443,13 +442,21 @@ public class CharacterLevelUpScreen extends JDialog {
     private void performLevelUp() {
         int cost = CharacterLevelCost.getCost(character.getLevel());
         if (!wallet.hasEnough(Currency.ELIXIR, cost)) { showToast("Not enough Elixir!"); return; }
+
+        // Snapshot stats BEFORE the level-up applies
+        int oldHp  = character.getMaxHp();
+        int oldAtk = character.getTotalAtk();
+        int oldDef = character.getDefense();
+
         LevelingService.LevelUpResult result = LevelingService.levelUpCharacter(character, wallet);
         if (result == LevelingService.LevelUpResult.MAX_LEVEL_REACHED) {
             showToast("Already at max level!"); return;
         } else if (result != LevelingService.LevelUpResult.SUCCESS) {
             showToast("Level up failed!"); return;
         }
+
         refreshUI();
+        showLevelUpPopup(oldHp, oldAtk, oldDef);
     }
 
     private void refreshUI() {
@@ -480,6 +487,146 @@ public class CharacterLevelUpScreen extends JDialog {
 
         root.revalidate();
         root.repaint();
+    }
+
+    // ── Level-up acknowledgement popup ───────────────────────────────────────
+
+    private void showLevelUpPopup(int oldHp, int oldAtk, int oldDef) {
+        final int PW = 490, PH = 320;
+
+        JDialog popup = new JDialog(this, "", true);
+        popup.setUndecorated(true);
+        popup.setSize(PW, PH);
+        popup.setLocationRelativeTo(this);
+        popup.setBackground(new Color(0, 0, 0, 0));  // transparent dialog background
+
+        JPanel root = new JPanel(null) {
+            @Override protected void paintComponent(Graphics g) {
+                // Don't call super — we paint the full background ourselves
+                // with a rounded rect, leaving corners truly transparent.
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Background
+                g2.setColor(BG_BOX);
+                g2.fillRoundRect(0, 0, PW, PH, BOX_ARC * 2, BOX_ARC * 2);
+
+                // Border
+                g2.setColor(BORDER_DARK);
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawRoundRect(2, 2, PW - 4, PH - 4, BOX_ARC * 2, BOX_ARC * 2);
+
+                // Inner accent border
+                g2.setColor(new Color(230, 200, 120, 100));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(6, 6, PW - 12, PH - 12, BOX_ARC * 2, BOX_ARC * 2);
+
+                // ── "Level Up!" title ─────────────────────────────────────────
+                g2.setFont(new Font("Georgia", Font.BOLD, 32));
+                FontMetrics fmT = g2.getFontMetrics();
+                String titleStr = "Level  Up!";
+                // Text with outline
+                g2.setColor(new Color(255, 230, 100));
+                g2.drawString(titleStr, (PW - fmT.stringWidth(titleStr)) / 2, 60);
+
+                // ── Divider ───────────────────────────────────────────────────
+                g2.setColor(BORDER_DARK);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawLine(PAD * 3, 74, PW - PAD * 3, 74);
+
+                // ── Stat rows ─────────────────────────────────────────────────
+                int[][] stats = {
+                        { oldHp,  character.getMaxHp()    },
+                        { oldAtk, character.getTotalAtk() },
+                        { oldDef, character.getDefense()  },
+                };
+                Color[] statColors = { COL_HP, COL_ATK, COL_DEF };
+                String[] statNames = { "HP", "Attack", "Defense" };
+
+                int rowY = 105;
+                for (int i = 0; i < stats.length; i++) {
+                    int oldVal = stats[i][0];
+                    int newVal = stats[i][1];
+                    boolean changed = newVal != oldVal;
+
+                    // Label (left)
+                    g2.setFont(new Font("Georgia", Font.BOLD, 18));
+                    g2.setColor(TEXT_LABEL);
+                    g2.drawString(statNames[i], PAD * 3, rowY);
+
+                    // Before → After (right)
+                    String before = String.valueOf(oldVal);
+                    String arrow  = "  >>  ";
+                    String after  = newVal + (changed ? "!" : "");
+                    String full   = before + arrow + after;
+
+                    g2.setFont(new Font("Georgia", Font.BOLD, 18));
+                    FontMetrics fm = g2.getFontMetrics();
+
+                    // Draw before value
+                    int rx = PW - PAD * 3 - fm.stringWidth(full);
+                    g2.setColor(TEXT_MID);
+                    g2.drawString(before, rx, rowY);
+                    rx += fm.stringWidth(before);
+
+                    // Arrow
+                    g2.setColor(TEXT_DARK);
+                    g2.drawString(arrow, rx, rowY);
+                    rx += fm.stringWidth(arrow);
+
+                    // After value — highlight in stat color if it changed
+                    g2.setFont(new Font("Georgia", changed ? Font.BOLD : Font.PLAIN, changed ? 20 : 18));
+                    if (changed) { g2.setColor(statColors[i]);
+                    g2.drawString(after, rx, rowY); }
+                    else { g2.setColor(TEXT_MID); g2.drawString(after, rx, rowY); }
+
+                    // Row divider
+                    g2.setColor(new Color(160, 128, 55, 60));
+                    g2.setStroke(new BasicStroke(1f));
+                    g2.drawLine(PAD * 3, rowY + 8, PW - PAD * 3, rowY + 8);
+
+                    rowY += 52;
+                }
+
+                // ── "Click anywhere to continue" ──────────────────────────────
+                g2.setFont(new Font("Georgia", Font.ITALIC, 14));
+                String hint = "Click here to continue";
+                FontMetrics fmH = g2.getFontMetrics();
+                g2.setColor(new Color(180, 145, 60));
+                g2.drawString(hint, (PW - fmH.stringWidth(hint)) / 2, PH - 20);
+            }
+        };
+
+        // Click anywhere to dismiss
+        // Click on the popup itself to dismiss
+        root.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                popup.dispose();
+            }
+        });
+        root.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        root.setOpaque(false);   // corners transparent, not white
+
+        // Also dismiss when clicking anywhere on the parent CharacterLevelUpScreen
+        JPanel parentRoot = (JPanel) getContentPane();
+        java.awt.event.MouseAdapter parentClick = new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                popup.dispose();
+            }
+        };
+        parentRoot.addMouseListener(parentClick);
+
+        // Clean up parent listener once popup is closed
+        popup.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                parentRoot.removeMouseListener(parentClick);
+                parentRoot.setCursor(Cursor.getDefaultCursor());
+            }
+        });
+        parentRoot.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        popup.setContentPane(root);
+        popup.setVisible(true);
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
