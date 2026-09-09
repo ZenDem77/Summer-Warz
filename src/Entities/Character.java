@@ -14,7 +14,9 @@ public abstract class Character extends Entity {
     public static final int PASSIVE_3_LEVEL = 30;
     public static final int MAX_LEVEL       = 60;
 
-    // ── Level thresholds for artifact slots ──────────────────────────────────.
+    // ── Level thresholds for artifact slots ──────────────────────────────────
+    // Slot 1 unlocks immediately; slots 2-4 unlock at the same milestones as
+    // passive slots. Index matches slot number (slot 0 = ARTIFACT_SLOT_1_LEVEL, etc).
     public static final int ARTIFACT_SLOT_1_LEVEL = 1;
     public static final int ARTIFACT_SLOT_2_LEVEL = 10;
     public static final int ARTIFACT_SLOT_3_LEVEL = 20;
@@ -27,6 +29,7 @@ public abstract class Character extends Entity {
     public static final double BASE_ACCURACY = 0.80;
     public static final int ARTIFACT_SLOT_COUNT = 4;
     protected int level;
+    protected int ascensionPhase = 0;
 
     // ── Weapon contribution ───────────────────────────────────────────────────
     private int      weaponAtk           = 0;
@@ -279,6 +282,40 @@ public abstract class Character extends Entity {
     }
 
     public abstract void levelUp();
+
+    // ── Ascension ─────────────────────────────────────────────────────────────
+
+    /** Level cap for the current ascension phase (10, 20, 30, 40, 50, or 60). */
+    public int getMaxLevelForPhase() {
+        return Math.min(MAX_LEVEL, (ascensionPhase + 1) * 10);
+    }
+
+    /** True if the character is at their current phase level cap and needs to ascend. */
+    public boolean isAtPhaseCap() {
+        return level >= getMaxLevelForPhase() && ascensionPhase < Entities.Items.AscensionCrystal.MAX_PHASE;
+    }
+
+    public int  getAscensionPhase() { return ascensionPhase; }
+
+    /** Used by AscensionService to advance the phase after a successful ascension. */
+    public void setAscensionPhase(int phase) {
+        if (phase < 0 || phase > Entities.Items.AscensionCrystal.MAX_PHASE)
+            throw new IllegalArgumentException("Invalid ascension phase: " + phase);
+        this.ascensionPhase = phase;
+    }
+
+    /**
+     * Called by AscensionService after a successful ascension.
+     * Override in each character subclass to apply their specific stat boost.
+     * The phase parameter tells you which ascension just completed (1–5) so
+     * you can scale the boost if desired.
+     *
+     * Default is a no-op — fill this in per character when you decide the stat.
+     */
+    public void applyAscensionBoost(int phase) {
+        // Each character subclass overrides this with their own stat increase.
+        // e.g.: case 1 -> maxHp += 50; case 2 -> attack += 10; etc.
+    }
 
     // ── Getters ───────────────────────────────────────────────────────────────
     public int      getLevel()               { return level; }
