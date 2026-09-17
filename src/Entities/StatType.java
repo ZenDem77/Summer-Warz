@@ -9,5 +9,6 @@ public enum StatType {
     HP_PERCENT,
     CRIT_RATE,
     CRIT_DAMAGE,
-    ACCURACY
+    ACCURACY,
+    DAMAGE_BONUS
 }
