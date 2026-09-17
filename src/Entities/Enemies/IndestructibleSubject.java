@@ -66,7 +66,7 @@ public class IndestructibleSubject extends Enemy implements Shielded {
             }
 
             @Override public String getName()        { return "Iron Shield"; }
-            @Override public String getDescription() { return "Gains " + shieldPerStack() + " shield every 2s (stacks)"; }
+            @Override public String getDescription() { return "Gains " + shieldPerStack() + " shield every 2s"; }
             @Override public int    getIntervalMs()  { return SHIELD_INTERVAL; }
 
             @Override
@@ -76,10 +76,14 @@ public class IndestructibleSubject extends Enemy implements Shielded {
                 switch (ctx.event) {
 
                     case TICK -> {
-                        // ── Grant shield stack ────────────────────────────────
-                        int gain = shieldPerStack();
-                        shieldHp += gain;
-                        ctx.battle.notifyShield(ctx.owner, getName(), gain);
+                        // ── Grant shield stack (capped at 200% of max HP) ─────
+                        int cap     = ctx.owner.getMaxHp() * 2;
+                        if (shieldHp >= cap) return;   // already at cap — no gain
+
+                        int fullGain   = shieldPerStack();
+                        int actualGain = Math.min(fullGain, cap - shieldHp);
+                        shieldHp += actualGain;
+                        ctx.battle.notifyShield(ctx.owner, getName(), actualGain);
                     }
 
                     case ON_TAKE_DAMAGE -> {

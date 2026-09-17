@@ -10,7 +10,7 @@ import Entities.Sprites.SpriteSet;
 public class Kindle extends Character {
 
     // ── Passive 1 constants ───────────────────────────────────────────────────
-    private static final double PASSIVE_1_ATK_PERCENT  = 0.30;
+    private static final double PASSIVE_1_ATK_PERCENT  = 0.90;
     private static final int    PASSIVE_1_INTERVAL_MS  = 3000;
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
@@ -18,12 +18,12 @@ public class Kindle extends Character {
     private static final int    PASSIVE_2_INTERVAL_MS  = 500;
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
-    private static final int PASSIVE_3_BONUS_DAMAGE = 7;
+    private static final int PASSIVE_3_BONUS_DAMAGE = 15;
     private static final int PASSIVE_3_HEAL_AMOUNT  = 10;
-    private static final int PASSIVE_3_INTERVAL_MS  = 550;
+    private static final int PASSIVE_3_INTERVAL_MS  = 450;
 
     public Kindle() {
-        super("Kindle", 220, 27, 5, 400, 0.05, 0.50, 30);
+        super("Kindle", 220, 27, 5, 400, 0.05, 1.0, 30);
     }
 
     // ── Passive slots ─────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ public class Kindle extends Character {
     private Passive passive1() {
         return new Passive() {
             @Override public String getName()        { return "Ember Surge"; }
-            @Override public String getDescription() { return "Deal 30% Total ATK true damage every " + msToSec(PASSIVE_1_INTERVAL_MS); }
+            @Override public String getDescription() { return "Deal 90% Total ATK true damage every " + msToSec(PASSIVE_1_INTERVAL_MS); }
             @Override public int getIntervalMs() { return PASSIVE_1_INTERVAL_MS; }
 
             @Override

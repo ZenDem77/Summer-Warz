@@ -20,7 +20,7 @@ public class Zenzenkoi extends Character {
     // ─────────────────────────────────────────────────────────────────────────
 
     public Zenzenkoi() {
-        super("Zenzenkoi", 270, 15, 2, 700, 0.05, 0.50, 30);
+        super("Zenzenkoi", 270, 15, 2, 700, 0.05, 1.0, 30);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class Zenzenkoi extends Character {
 
             @Override public String getName()        { return "Last Stand Strike"; }
             @Override public String getDescription() {
-                return "At 25% HP: unleash one attack at 100 + 250% Total ATK (can crit, affected by shields and crit reduction). Once per battle.";
+                return "At 25% HP: unleash one attack at 100 + 450% Total ATK (Once per battle).";
             }
             @Override public int getIntervalMs() { return 0; }
 
@@ -115,7 +115,7 @@ public class Zenzenkoi extends Character {
 
                 // ── Damage formula: flat 100 + 150% of total ATK ──────────────
                 int totalAtk  = ctx.owner.getEffectiveAtk();
-                double rawBase = 100 + (2.50 * totalAtk);
+                double rawBase = 100 + (4.50 * totalAtk);
 
                 // ── Crit roll ─────────────────────────────────────────────────
                 boolean isCrit = Math.random() < ctx.owner.getCritRate();
@@ -139,7 +139,7 @@ public class Zenzenkoi extends Character {
                 target.takeDamage(finalDmg);
 
                 String desc = (isCrit ? "★ CRIT! " : "")
-                        + actual + " dmg at 25% HP (100 + 250% ATK)"
+                        + actual + " dmg at 25% HP (100 + 450% ATK)"
                         + (isCrit ? "!" : "");
                 ctx.battle.notifySpecialHit(ctx.owner, target, getName(), desc, actual, isCrit);
                 ctx.battle.checkEndPublic();

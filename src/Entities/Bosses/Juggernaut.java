@@ -9,10 +9,10 @@ import java.util.EnumSet;
 
 // ─── BOSS 5 ───────────────────────────────────────────────────────────────────
 
-public class Scar extends Enemy {
+public class Juggernaut extends Enemy {
 
-    public Scar() {
-        super("Scar", 10000, 27, 15, 400, 0.95, 2.20);
+    public Juggernaut() {
+        super("Juggernaut", 10000, 27, 15, 400, 0.95, 2.20);
     }
 
     // ── True damage immunity ──────────────────────────────────────────────────

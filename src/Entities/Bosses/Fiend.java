@@ -6,7 +6,7 @@ import Entities.Sprites.*;
 
 // ─── BOSS 1 ───────────────────────────────────────────────────────────────────
 
-public class Phainon extends Enemy {
+public class Fiend extends Enemy {
 
     // ── Passive constants ─────────────────────────────────────────────────────
     private static final int PASSIVE_HEAL_AMOUNT = 100;
@@ -17,8 +17,8 @@ public class Phainon extends Enemy {
         return (s == (int) s ? String.valueOf((int) s) : String.valueOf(s)) + "s";
     }
 
-    public Phainon() {
-        super("Phainon", 500, 15, 3, 900, 0.90, 1.80);
+    public Fiend() {
+        super("Fiend", 500, 15, 3, 900, 0.90, 1.80);
     }
 
     @Override
@@ -43,10 +43,10 @@ public class Phainon extends Enemy {
     @Override
     public SpriteSet getSpriteSet() {
         return new SpriteSet(
-                SpritePaths.PHAINON_IDLE,
-                SpritePaths.PHAINON_RUN,
-                SpritePaths.PHAINON_ATTACK,
-                SpritePaths.PHAINON_DEAD
+                SpritePaths.FIEND_IDLE,
+                SpritePaths.FIEND_RUN,
+                SpritePaths.FIEND_ATTACK,
+                SpritePaths.FIEND_DEAD
         );
     }
 }

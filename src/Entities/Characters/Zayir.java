@@ -4,6 +4,8 @@ import Combat.DamageResult;
 import Entities.Entity;
 import Entities.Character;
 import Entities.PassiveHandler.*;
+import Entities.Sprites.SpritePaths;
+import Entities.Sprites.SpriteSet;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -13,7 +15,7 @@ public class Zayir extends Character {
     // ── Passive 1 constants ───────────────────────────────────────────────────
     private static final double PASSIVE_1_CRIT_RATE_PENALTY = 2.00;   // -200%
     private static final int    PASSIVE_1_FLAT_DAMAGE       = 10;
-    private static final double PASSIVE_1_ATK_PERCENT       = 1.20;   // 70% of total ATK
+    private static final double PASSIVE_1_ATK_PERCENT       = 1.20;   // 120% of total ATK
     private static final int    PASSIVE_1_INTERVAL_MS       = 400;
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
@@ -24,7 +26,7 @@ public class Zayir extends Character {
     private static final int PASSIVE_3_ATK_BONUS = 50;
 
     public Zayir() {
-        super("Zayir", 150, 30, 3, 4000, 0.05, 0.50, 30);
+        super("Zayir", 150, 30, 3, 4000, 0.05, 1.0, 30);
     }
 
     @Override
@@ -178,6 +180,18 @@ public class Zayir extends Character {
             case 3 -> { maxHp += 12;  attack += 4; }
             case 4 -> { maxHp += 36; attack += 5; defense += 1; }
         }
+    }
+
+    // ── Sprite ────────────────────────────────────────────────────────────────
+
+    @Override
+    public SpriteSet getSpriteSet() {
+        return new SpriteSet(
+                SpritePaths.ZAYIR_IDLE,
+                SpritePaths.ZAYIR_RUN,
+                SpritePaths.ZAYIR_ATTACK,
+                SpritePaths.ZAYIR_DEAD
+        );
     }
 
     @Override

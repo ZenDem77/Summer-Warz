@@ -16,12 +16,12 @@ public class Artifact {
                     StatType.CRIT_DAMAGE, new double[]{ 0.08, 0.16, 0.24, 0.32 },
                     StatType.ATK,         new double[]{ 12,   24,   36,   48   },
                     StatType.ATK_PERCENT, new double[]{ 0.08, 0.16, 0.24, 0.32 },
-                    StatType.DEF,         new double[]{ 2,    4,    6,    8    },
-                    StatType.DEF_PERCENT, new double[]{ 0.03, 0.06, 0.09, 0.12 },
+                    StatType.DEF,         new double[]{ 4,    8,    16,   24   },
+                    StatType.DEF_PERCENT, new double[]{ 0.08, 0.16, 0.24, 0.32 },
                     StatType.HP,          new double[]{ 48,   96,   144,  192  },
                     StatType.HP_PERCENT,  new double[]{ 0.04, 0.08, 0.12, 0.16 },
                     StatType.ACCURACY,    new double[]{ 0.0125, 0.025, 0.0375, 0.05 },
-                    StatType.DAMAGE_BONUS, new double[]{ 0.04, 0.08, 0.12, 0.16}
+                    StatType.DAMAGE_BONUS, new double[]{ 0.06, 0.12, 0.18, 0.24}
             );
 
     private static final StatType[] ALL_TYPES = SUBSTAT_POOL.keySet().toArray(new StatType[0]);

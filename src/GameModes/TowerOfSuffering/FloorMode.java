@@ -13,9 +13,6 @@ import Economy.Currency;
 import Economy.FloorRewardTable;
 import Economy.Wallet;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * FloorMode — logic layer for the floor-climbing game mode.
  *
@@ -48,7 +45,7 @@ import java.util.List;
  *  Add at top: package GameModes;
  *  Then add imports for Combat.NormalBattle.Battle,
  *               Entities.Character, Entities.Enemy,
- *               Entities.Enemies.Phainon, Entities.Enemies.Hanzo, etc.
+ *               Entities.Enemies.Fiend, Entities.Enemies.Hanzo, etc.
  */
 public class FloorMode {
 
@@ -218,7 +215,7 @@ public class FloorMode {
         f.add(new Floor(4, () -> List.of(new  ExperimentalSubject(1),  new ExperimentalSubject(1))));
 
         // ── Floor 5 — ★ BOSS ─────────────────────────────────────────────────
-        f.add(new Floor(5, () -> List.of(new Phainon())));
+        f.add(new Floor(5, () -> List.of(new Fiend())));
 
         // ── Floors 6–9 ────────────────────────────────────────────────────────
         f.add(new Floor(6, () -> List.of(new ExperimentalSubject(1), new UnknownSubject(1))));
@@ -254,7 +251,7 @@ public class FloorMode {
         f.add(new Floor(24, () -> List.of(new  UnknownSubject(6), new IndestructibleSubject(6), new ExperimentalSubject(6))));
 
         // ── Floor 25 — ★ BOSS ────────────────────────────────────────────────
-        f.add(new Floor(25, () -> List.of(new Scar())));
+        f.add(new Floor(25, () -> List.of(new Juggernaut())));
 
         // ── Floors 26–29 ──────────────────────────────────────────────────────
         f.add(new Floor(26, () -> List.of(new UnknownSubject(7))));
@@ -272,7 +269,7 @@ public class FloorMode {
         f.add(new Floor(34, () -> List.of(new UnknownSubject(8), new IndestructibleSubject(8), new ExperimentalSubject(8))));
 
         // ── Floor 35 — ★ BOSS ────────────────────────────────────────────────
-        f.add(new Floor(35, () -> List.of(new Groon())));
+        f.add(new Floor(35, () -> List.of(new Brute())));
 
         // ── Floors 36–39 ──────────────────────────────────────────────────────
         f.add(new Floor(36, () -> List.of(new UnknownSubject(8), new ExperimentalSubject(8))));
@@ -281,7 +278,7 @@ public class FloorMode {
         f.add(new Floor(39, () -> List.of(new UnknownSubject(9))));
 
         // ── Floor 40 — ★ BOSS ────────────────────────────────────────────────
-        f.add(new Floor(40, () -> List.of(new Gouto())));
+        f.add(new Floor(40, () -> List.of(new Goliath())));
 
         // ── Floors 41–44 ──────────────────────────────────────────────────────
         f.add(new Floor(41, () -> List.of(new IndestructibleSubject(9))));
@@ -290,7 +287,7 @@ public class FloorMode {
         f.add(new Floor(44, () -> List.of(new ExperimentalSubject(9), new IndestructibleSubject(9),   new UnknownSubject(9))));
 
         // ── Floor 45 — ★ BOSS ────────────────────────────────────────────────
-        f.add(new Floor(45, () -> List.of(new Maki())));
+        f.add(new Floor(45, () -> List.of(new Sephiroth())));
 
         // ── Floors 46–49 ──────────────────────────────────────────────────────
         f.add(new Floor(46, () -> List.of(new ExperimentalSubject(10), new ExperimentalSubject(10))));

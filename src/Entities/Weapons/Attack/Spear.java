@@ -1,6 +1,7 @@
-package Entities.Weapons;
+package Entities.Weapons.Attack;
 
 import Entities.StatType;
+import Entities.Weapons.Weapon;
 
 public class Spear extends Weapon {
 

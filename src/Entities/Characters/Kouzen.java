@@ -26,7 +26,7 @@ public class Kouzen extends Character implements Shielded {
     // ── Constructor ───────────────────────────────────────────────────────────
 
     public Kouzen() {
-        super("Kouzen", 370, 15, 10, 800, 0.05, 0.50, 30);
+        super("Kouzen", 370, 15, 10, 800, 0.05, 1.0, 30);
     }
 
     // ── Shielded interface ────────────────────────────────────────────────────
@@ -147,7 +147,7 @@ public class Kouzen extends Character implements Shielded {
             case 1 -> { maxHp += 8;  attack += 1; }
             case 2 -> { maxHp += 16;  attack += 1; }
             case 3 -> { maxHp += 24; attack += 1; }
-            case 4 -> { maxHp += 72; attack += 2; defense += 1; }
+            case 4 -> { maxHp += 72; attack += 3; defense += 1; }
         }
     }
 
