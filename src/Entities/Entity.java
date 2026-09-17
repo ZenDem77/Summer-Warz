@@ -30,12 +30,12 @@ public abstract class Entity {
     }
 
     public DamageResult calculateDamage(Entity defender) {
-        if (Math.random() >= accuracy) {
+        if (Math.random() >= getAccuracy()) {
             return new DamageResult(0, false, true);   // miss
         }
-        boolean crit = Math.random() < critRate;
+        boolean crit = Math.random() < getCritRate();
         int     atk  = getEffectiveAtk();
-        double  raw  = crit ? atk + (atk * critDamage) : atk;
+        double  raw  = crit ? atk + (atk * getCritDamage()) : atk;
         int     dmg  = Math.max(1, (int) raw - defender.getDefense());
         return new DamageResult(dmg, crit, false);
     }
@@ -45,7 +45,7 @@ public abstract class Entity {
     }
 
     public void heal(int amount) {
-        currentHp = Math.min(maxHp, currentHp + amount);
+        currentHp = Math.min(getMaxHp(), currentHp + amount);
     }
 
     public boolean isAlive() { return currentHp > 0; }
@@ -55,19 +55,20 @@ public abstract class Entity {
     // ── Passive hook ──────────────────────────────────────────────────────────
     public Passive getPassive() { return null; }
 
+    // ── Effective ATK ─────────────────────────────────────────────────────────
+    public int getEffectiveAtk() { return attack; }
+
     // ── Getters ───────────────────────────────────────────────────────────────
     public String getName()        { return name; }
     public int    getMaxHp()       { return maxHp; }
     public int    getCurrentHp()   { return currentHp; }
     public int    getAttack()      { return attack; }
-    public int    getEffectiveAtk(){ return attack; }
     public int    getDefense()     { return defense; }
     public int    getAttackSpeed() { return attackSpeed; }
     public double getCritRate()    { return critRate; }
     public double getCritDamage()  { return critDamage; }
     public double getAccuracy()    { return accuracy; }
-
-    public double getHpPercent()   { return (double) currentHp / maxHp; }
+    public double getHpPercent()   { return (double) currentHp / getMaxHp(); }
 
     // ── Crit stat modifiers (called by weapons/items) ─────────────────────────
     public void addCritRate(double bonus)   { critRate   += bonus; }

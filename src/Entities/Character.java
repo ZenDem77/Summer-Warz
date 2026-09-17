@@ -1,5 +1,6 @@
 package Entities;
 
+import Entities.Artifacts.Artifact;
 import Entities.PassiveHandler.Passive;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ public abstract class Character extends Entity {
     public static final int PASSIVE_3_LEVEL = 30;
 
     public static final double BASE_ACCURACY = 0.85;
+    public static final int ARTIFACT_SLOT_COUNT = 4;
     protected int level;
 
     // ── Weapon contribution ───────────────────────────────────────────────────
@@ -20,12 +22,14 @@ public abstract class Character extends Entity {
     private StatType weaponSecondaryType  = null;   // null = no secondary stat
     private double   weaponSecondaryValue = 0.0;
 
-    // ── Artifact contribution ─────────────────────────────────────────────────
     private int    artifactFlatAtk    = 0;
     private double artifactAtkPercent = 0.0;
 
     // ── Passive ATK bonus ─────────────────────────────────────────────────────
     private int passiveAtkBonus = 0;
+
+    // ── Artifact equip slots ──────────────────────────────────────────────────
+    private final Artifact[] artifactSlots = new Artifact[ARTIFACT_SLOT_COUNT];
 
     // ─────────────────────────────────────────────────────────────────────────
     public Character(String name, int maxHp, int attack, int defense, int attackSpeed, double critRate, double critDamage, int level) {
@@ -39,18 +43,21 @@ public abstract class Character extends Entity {
     }
 
     public int getTotalAtk() {
-        int    base     = getBaseAtk();
-        int    flatBonus = artifactFlatAtk;
-        double atkPercent = artifactAtkPercent;
+        int    base       = getBaseAtk();
+        int    flatBonus  = artifactFlatAtk;     // legacy manual override (default 0)
+        double atkPercent = artifactAtkPercent;  // legacy manual override (default 0)
 
-        // Weapon secondary ATK is a flat bonus, not part of base ATK
+        // Weapon secondary ATK / ATK%
         if (weaponSecondaryType == StatType.ATK) {
             flatBonus += (int) weaponSecondaryValue;
         }
-        // Weapon secondary ATK% stacks with artifact ATK%
         if (weaponSecondaryType == StatType.ATK_PERCENT) {
             atkPercent += weaponSecondaryValue;
         }
+
+        // Artifact substats — summed across all 4 equip slots
+        flatBonus  += (int) getArtifactSubstatTotal(StatType.ATK);
+        atkPercent += getArtifactSubstatTotal(StatType.ATK_PERCENT);
 
         return (int)(base * (1.0 + atkPercent)) + flatBonus + passiveAtkBonus;
     }
@@ -58,20 +65,22 @@ public abstract class Character extends Entity {
     @Override
     public int getEffectiveAtk() { return getTotalAtk(); }
 
-    // ── Weapon integration (called by future Weapon class) ────────────────────
+    // ── Weapon integration ────────────────────────────────────────────────────
     public void applyWeaponStats(int primaryAtk, StatType secondaryType, double secondaryValue) {
         removeWeaponStats();   // cleanly remove any currently equipped weapon first
         this.weaponAtk            = primaryAtk;
         this.weaponSecondaryType  = secondaryType;
         this.weaponSecondaryValue = secondaryValue;
 
-        if (secondaryType != null && secondaryType != StatType.ATK) {
+        if (secondaryType != null && secondaryType != StatType.ATK && secondaryType != StatType.ATK_PERCENT) {
             applyStatBonus(secondaryType, secondaryValue);
         }
     }
 
     public void removeWeaponStats() {
-        if (weaponSecondaryType != null && weaponSecondaryType != StatType.ATK) {
+        if (weaponSecondaryType != null
+                && weaponSecondaryType != StatType.ATK
+                && weaponSecondaryType != StatType.ATK_PERCENT) {
             removeStatBonus(weaponSecondaryType, weaponSecondaryValue);
         }
         weaponAtk            = 0;
@@ -79,7 +88,7 @@ public abstract class Character extends Entity {
         weaponSecondaryValue = 0.0;
     }
 
-    // ── Artifact ATK integration (called by future artifact system) ───────────
+    // ── Legacy manual artifact ATK override ───────────────────────────────────
     public void applyArtifactAtkBonus(int flatAtk, double atkPercent) {
         this.artifactFlatAtk    = flatAtk;
         this.artifactAtkPercent = atkPercent;
@@ -97,6 +106,80 @@ public abstract class Character extends Entity {
 
     public int getPassiveAtkBonus() { return passiveAtkBonus; }
 
+    // ── Artifact equip slots ───────────────────────────────────────────────────
+    public void equipArtifact(int slot, Artifact artifact) {
+        validateSlot(slot);
+        if (artifact == null)
+            throw new IllegalArgumentException("Use unequipArtifact() to clear a slot, not equipArtifact(null).");
+        artifactSlots[slot] = artifact;
+        currentHp = Math.min(currentHp, getMaxHp());
+    }
+
+    public void unequipArtifact(int slot) {
+        validateSlot(slot);
+        artifactSlots[slot] = null;
+        currentHp = Math.min(currentHp, getMaxHp());
+    }
+
+    public Artifact getArtifact(int slot) {
+        validateSlot(slot);
+        return artifactSlots[slot];
+    }
+
+    public Artifact[] getArtifactSlots() {
+        return artifactSlots.clone();
+    }
+
+    private static void validateSlot(int slot) {
+        if (slot < 0 || slot >= ARTIFACT_SLOT_COUNT)
+            throw new IllegalArgumentException("Artifact slot must be 0-" + (ARTIFACT_SLOT_COUNT - 1) + ", got: " + slot);
+    }
+
+    public double getArtifactSubstatTotal(StatType type) {
+        double total = 0.0;
+        for (Artifact a : artifactSlots) {
+            if (a != null) total += a.getSubstatValue(type);
+        }
+        return total;
+    }
+
+    // ── Stat overrides (include artifact substat contributions) ──────────────
+    @Override
+    public double getCritRate() {
+        return super.getCritRate() + getArtifactSubstatTotal(StatType.CRIT_RATE);
+    }
+
+    @Override
+    public double getCritDamage() {
+        return super.getCritDamage() + getArtifactSubstatTotal(StatType.CRIT_DAMAGE);
+    }
+
+    @Override
+    public double getAccuracy() {
+        return super.getAccuracy() + getArtifactSubstatTotal(StatType.ACCURACY);
+    }
+
+    @Override
+    public int getDefense() {
+        int    baseDef    = super.getDefense();
+        double defPercent = getArtifactSubstatTotal(StatType.DEF_PERCENT);
+        int    flatDef    = (int) getArtifactSubstatTotal(StatType.DEF);
+        return (int)(baseDef * (1.0 + defPercent)) + flatDef;
+    }
+
+    @Override
+    public int getMaxHp() {
+        int    baseMaxHp = super.getMaxHp();
+        double hpPercent = getArtifactSubstatTotal(StatType.HP_PERCENT);
+        int    flatHp    = (int) getArtifactSubstatTotal(StatType.HP);
+        return (int)(baseMaxHp * (1.0 + hpPercent)) + flatHp;
+    }
+
+    @Override
+    public void reset() {
+        currentHp = getMaxHp();
+    }
+
     // ── Generic stat bonus helpers ────────────────────────────────────────────
     public void applyStatBonus(StatType type, double value) {
         switch (type) {
@@ -108,7 +191,7 @@ public abstract class Character extends Entity {
                 maxHp     += (int) value;
                 currentHp  = Math.min(currentHp + (int) value, maxHp);
             }
-            case ATK, ATK_PERCENT -> { /* handled via getTotalAtk() */ }
+            case ATK, ATK_PERCENT, DEF_PERCENT, HP_PERCENT -> { /* handled via getters */ }
         }
     }
 
@@ -122,7 +205,7 @@ public abstract class Character extends Entity {
                 maxHp     -= (int) value;
                 currentHp  = Math.min(currentHp, maxHp);
             }
-            case ATK, ATK_PERCENT -> { /* handled via getTotalAtk() */ }
+            case ATK, ATK_PERCENT, DEF_PERCENT, HP_PERCENT -> { /* handled via getters */ }
         }
     }
 
@@ -162,4 +245,13 @@ public abstract class Character extends Entity {
     public double   getWeaponSecondaryValue(){ return weaponSecondaryValue; }
     public int      getArtifactFlatAtk()     { return artifactFlatAtk; }
     public double   getArtifactAtkPercent()  { return artifactAtkPercent; }
+
+    // ── Display ───────────────────────────────────────────────────────────────
+    public String getSummary() {
+        String base = name + "\nLevel: " + level + "\nHp: " + getMaxHp() + "\nAtk: " + getEffectiveAtk() +
+                      "\nDef: " + getDefense() + "\nCrit Rate: " + (getCritRate() * 100) + "%" +
+                      "\nCrit Damage: " + (getCritDamage() * 100) + "%" +
+                      "\nAccuracy: " + (getAccuracy() * 100) + "%";
+        return base;
+    }
 }
