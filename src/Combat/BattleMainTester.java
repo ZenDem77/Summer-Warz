@@ -24,7 +24,7 @@ public class BattleMainTester {
             Zed zed = new Zed();
             Kaizen kaizen = new Kaizen();
             Zayir zayir = new Zayir();
-            List<Entities.Character> team = List.of(zed);
+            List<Entities.Character> team = List.of(zayir);
 
             Weapon weaponZ = new IronEdge();
             Weapon weaponK = new IronEdge();
@@ -39,12 +39,12 @@ public class BattleMainTester {
             Artifact a3 = Artifact.generateRandom();
             Artifact a4 = Artifact.generateRandom();
 
-            zed.equipArtifact(0, a1);
-            zed.equipArtifact(1, a2);
-            zed.equipArtifact(2, a3);
-            zed.equipArtifact(3, a4);
+            zayir.equipArtifact(0, a1);
+            zayir.equipArtifact(1, a2);
+            zayir.equipArtifact(2, a3);
+            zayir.equipArtifact(3, a4);
 
-            System.out.println(zed.getSummary());
+            System.out.println(zayir.getSummary());
 
             List<Enemy> enemies  = List.of(new IndestructibleSubject(10));
             window.showPanel(new BattlePanel(new Battle(team, enemies)));
