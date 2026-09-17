@@ -117,6 +117,7 @@ public class Xyniz extends Character {
             case 3 -> { maxHp += 16; attack += 3; }
             case 4 -> { maxHp += 48; attack += 4; defense += 1; }
         }
+        //currentHp = maxHp;
     }
 
     // ── Sprite ────────────────────────────────────────────────────────────────

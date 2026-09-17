@@ -12,6 +12,7 @@ public abstract class Character extends Entity {
     public static final int PASSIVE_1_LEVEL = 10;
     public static final int PASSIVE_2_LEVEL = 20;
     public static final int PASSIVE_3_LEVEL = 30;
+    public static final int MAX_LEVEL       = 60;
 
     // ── Level thresholds for artifact slots ──────────────────────────────────.
     public static final int ARTIFACT_SLOT_1_LEVEL = 1;
