@@ -533,13 +533,11 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
         // Player side (left)
         Entity p = battle.getPlayer();
-        String pLabel = p.getName() + (p instanceof Character c ? "  [" + c.getClan() + " Clan]" : "");
-        drawHudEntry(g2, pLabel, p, BAR_MARGIN, false);
+        drawHudEntry(g2, p.getName(), p, BAR_MARGIN, false);
 
         // Enemy side (right)
         Entity e = battle.getEnemy();
-        String eLabel = e.getName() + (e instanceof Enemy en ? "  [" + en.getRank() + "]" : "");
-        drawHudEntry(g2, eLabel, e, W - BAR_MARGIN - BAR_W, true);
+        drawHudEntry(g2, e.getName(), e, W - BAR_MARGIN - BAR_W, true);
     }
 
     private void drawHudEntry(Graphics2D g2, String label, Entity entity, int barX, boolean rightAlign) {

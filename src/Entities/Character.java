@@ -10,24 +10,14 @@ public abstract class Character extends Entity {
     public static final int PASSIVE_2_LEVEL = 20;
     public static final int PASSIVE_3_LEVEL = 30;
 
-    protected int    level;
-    protected int    karma;
-    protected String clan;
-
     public static final double BASE_ACCURACY = 0.90;
+    protected int level;
 
     public Character(String name, int maxHp, int attack, int defense,
-                     int attackSpeed, double critRate, double critDamage,
-                     int level, String clan) {
+                     int attackSpeed, double critRate, double critDamage, int level) {
         super(name, maxHp, attack, defense, attackSpeed, critRate, critDamage, BASE_ACCURACY);
         this.level = level;
-        this.karma = 0;
-        this.clan  = clan;
     }
-
-    // ── Karma ─────────────────────────────────────────────────────────────────
-
-    public void gainKarma(int amount) { this.karma += amount; }
 
     // ── Passive slots ─────────────────────────────────────────────────────────
     public Passive[] getPassives() {
@@ -60,9 +50,5 @@ public abstract class Character extends Entity {
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
-    public int    getLevel() { return level; }
-    public int    getKarma() { return karma; }
-    public String getClan()  { return clan; }
-
-    public abstract String getSpecialMoveName();
+    public int getLevel() { return level; }
 }

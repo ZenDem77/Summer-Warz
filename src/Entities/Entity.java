@@ -34,7 +34,7 @@ public abstract class Entity {
         }
         boolean crit = Math.random() < critRate;
         double  raw  = crit ? attack + (attack * critDamage) : attack;
-        int     dmg  = Math.max(0, (int) raw - defender.getDefense());
+        int     dmg  = Math.max(1, (int) raw - defender.getDefense());
         return new DamageResult(dmg, crit, false);
     }
 
@@ -69,7 +69,6 @@ public abstract class Entity {
     // ── Crit stat modifiers (called by weapons/items) ─────────────────────────
     public void addCritRate(double bonus)   { critRate   += bonus; }
     public void addCritDamage(double bonus) { critDamage += bonus; }
-    public void addAccuracy(double bonus)   { accuracy   += bonus; }
 
     @Override
     public String toString() {
