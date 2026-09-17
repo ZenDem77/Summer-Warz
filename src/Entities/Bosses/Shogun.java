@@ -10,6 +10,8 @@ import Entities.PassiveHandler.Shielded;
 import java.util.EnumSet;
 import java.util.Set;
 
+// ─── BOSS 4 ───────────────────────────────────────────────────────────────────
+
 public class Shogun extends Enemy implements Shielded {
 
     private static final int    BASE_ATTACK_SPEED    = 400;
@@ -23,7 +25,7 @@ public class Shogun extends Enemy implements Shielded {
     // ── Constructor ───────────────────────────────────────────────────────────
 
     public Shogun() {
-        super("Shogun", 7500, 20, 12, BASE_ATTACK_SPEED, 0.90, 2.00);
+        super("Shogun", 7500, 24, 12, BASE_ATTACK_SPEED, 0.90, 2.00);
     }
 
     // ── Shielded interface ────────────────────────────────────────────────────

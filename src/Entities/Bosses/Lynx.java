@@ -9,6 +9,8 @@ import Entities.PassiveHandler.Shielded;
 import java.util.EnumSet;
 import java.util.Set;
 
+// ─── BOSS 3 ───────────────────────────────────────────────────────────────────
+
 public class Lynx extends Enemy implements Shielded {
 
     private static final int    SHIELD_AMOUNT       = 2000;
@@ -19,7 +21,7 @@ public class Lynx extends Enemy implements Shielded {
     private boolean enraged  = false;   // true once the shield has broken
 
     public Lynx() {
-        super("Lynx", 2200, 17, 10, BASE_ATTACK_SPEED, 0.90, 1.75);
+        super("Lynx", 2200, 20, 10, BASE_ATTACK_SPEED, 0.90, 1.75);
     }
 
     // ── Shielded interface ────────────────────────────────────────────────────

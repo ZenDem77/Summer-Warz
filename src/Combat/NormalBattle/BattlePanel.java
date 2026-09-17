@@ -392,8 +392,24 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     @Override
+    public void onImmune(String log, Entity owner, Entity target, String passiveName) {
+        SwingUtilities.invokeLater(() -> {
+            boolean targetIsPlayer = (target == battle.getActivePlayer());
+            Entity displayTarget   = targetIsPlayer ? getDisplayedPlayer() : getDisplayedEnemy();
+            int sw = spriteWidthFor(displayTarget);
+            int sh = spriteHeightFor(displayTarget);
+            double worldX = targetIsPlayer ? playerWorldX : enemyWorldX;
+            double worldY = targetIsPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y;
+            Point sp = spritePos(worldX, worldY, sw, sh);
+            BattleUI.spawnImmunePopup(floatingTexts, sp.x, sp.y, sw, TICK_MS);
+        });
+    }
+
+    @Override
     public void onSpecialHit(String log, Entity owner, Entity target, int amount, boolean isCrit) {
         SwingUtilities.invokeLater(() -> {
+            // Special hit lands on the target — flash the target and spawn
+            // the gold/red special popup on their position.
             boolean targetIsPlayer = (target == battle.getActivePlayer());
             if (targetIsPlayer) { playerFlashing = true; playerFlashTick = 0; }
             else                { enemyFlashing  = true; enemyFlashTick  = 0; }

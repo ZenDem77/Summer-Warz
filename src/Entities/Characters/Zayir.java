@@ -13,12 +13,12 @@ public class Zayir extends Character {
     // ── Passive 1 constants ───────────────────────────────────────────────────
     private static final double PASSIVE_1_CRIT_RATE_PENALTY = 2.00;   // -200%
     private static final int    PASSIVE_1_FLAT_DAMAGE       = 10;
-    private static final double PASSIVE_1_ATK_PERCENT       = 0.70;   // 70% of total ATK
+    private static final double PASSIVE_1_ATK_PERCENT       = 1.20;   // 70% of total ATK
     private static final int    PASSIVE_1_INTERVAL_MS       = 400;
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
-    private static final int PASSIVE_2_ATK_BONUS    = 100;
-    private static final int PASSIVE_2_DURATION_MS  = 2400;
+    private static final int PASSIVE_2_ATK_BONUS    = 150;
+    private static final int PASSIVE_2_DURATION_MS  = 4000;
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_3_ATK_BONUS = 50;
@@ -71,6 +71,10 @@ public class Zayir extends Character {
                 DamageResult result = ctx.owner.calculateTrueDamage(dmg);
                 if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int scaled = Math.max(1, (int)(result.amount * ctx.battle.getDamageMultiplier()));
+                if (target.isTrueDamageImmune()) {
+                    ctx.battle.notifyImmune(ctx.owner, target, getName());
+                    return;
+                }
                 int actual = Math.min(scaled, target.getCurrentHp());
                 target.takeDamage(scaled);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
@@ -173,10 +177,10 @@ public class Zayir extends Character {
     @Override
     public void levelUp() {
         switch (checkLevel()) {
-            case 1 -> { maxHp += 5;  attack += 4; }
-            case 2 -> { maxHp += 10;  attack += 4; }
-            case 3 -> { maxHp += 15;  attack += 4; }
-            case 4 -> { maxHp += 45; attack += 5; defense += 1; }
+            case 1 -> { maxHp += 4;  attack += 4; }
+            case 2 -> { maxHp += 8;  attack += 4; }
+            case 3 -> { maxHp += 12;  attack += 4; }
+            case 4 -> { maxHp += 36; attack += 5; defense += 1; }
         }
     }
 

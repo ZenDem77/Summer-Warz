@@ -26,7 +26,7 @@ public class TowerMainTester {
             Zayir zayir = new Zayir();
             Zenzenkoi zenzenkoi = new Zenzenkoi();
             Kouzen kouzen = new Kouzen();
-            List<Character> team = List.of(kouzen, xyniz, zayir, kindle);
+            List<Character> team = List.of(zayir, kouzen, xyniz, kindle);
 
             // ── Weapons ───────────────────────────────────────────────────────
             Weapon staff = new Staff();
@@ -38,9 +38,9 @@ public class TowerMainTester {
 
             shield.equip(kouzen); shield.setWeaponLevel(20);
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
-            weaponZ.equip(kindle); weaponZ.setWeaponLevel(10);
-            weaponK.equip(xyniz); weaponK.setWeaponLevel(10);
-            weapon.equip(zayir); weapon.setWeaponLevel(10);
+            weaponZ.equip(kindle); weaponZ.setWeaponLevel(20);
+            weaponK.equip(xyniz); weaponK.setWeaponLevel(20);
+            weapon.equip(zayir); weapon.setWeaponLevel(20);
 
             // ── Artifacts ─────────────────────────────────────────────────────
             Artifact a1 = Artifact.generateRandom();
@@ -58,10 +58,10 @@ public class TowerMainTester {
             kouzen.equipArtifact(2, a3);
             kouzen.equipArtifact(3, a4);
 
-            kindle.equipArtifact(0, b1);
-            kindle.equipArtifact(1, b2);
-            kindle.equipArtifact(2, b3);
-            kindle.equipArtifact(3, b4);
+            zayir.equipArtifact(0, b1);
+            zayir.equipArtifact(1, b2);
+            zayir.equipArtifact(2, b3);
+            zayir.equipArtifact(3, b4);
 
             System.out.println(zenzenkoi.getSummary());
 
@@ -104,8 +104,8 @@ public class TowerMainTester {
         }
 
         // Guard: floors 11+ have no enemies yet
-        if (mode.getCurrentFloorNumber() > 24) {
-            System.out.println("Floors 25+ not yet populated. Test ends here.");
+        if (mode.getCurrentFloorNumber() > 29) {
+            System.out.println("Floors 30+ not yet populated. Test ends here.");
             return;
         }
 
@@ -147,6 +147,7 @@ public class TowerMainTester {
             @Override public void onPassive(String log, Entities.Entity owner, int amt, boolean heal) {}
             @Override public void onPassiveMiss(String log, Entities.Entity owner, Entities.Entity target, String passiveName) {}
             @Override public void onSpecialHit(String log, Entities.Entity owner, Entities.Entity target, int amount, boolean isCrit) {}
+            @Override public void onImmune(String log, Entities.Entity owner, Entities.Entity target, String passiveName) {}
             @Override public void onFighterEnter(boolean isPlayer, Entities.Entity fighter, int remaining) {}
         });
 

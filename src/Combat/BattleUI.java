@@ -44,7 +44,7 @@ public class BattleUI {
         static final int DURATION_MS = 700;
         static final int RISE_PX     = 40;
         public String text; public float x, y; public int alpha = 255;
-        public boolean isCrit, isHeal, isPassiveDmg, isMiss, leftAnchored, isSpecialHit;
+        public boolean isCrit, isHeal, isPassiveDmg, isMiss, leftAnchored, isSpecialHit, isImmune;
         int ticksLeft; float dy; int dAlpha;
 
         public FloatingText(String text, float x, float y,
@@ -75,30 +75,24 @@ public class BattleUI {
 
     /** Draws a single FloatingText with its drop shadow and color-coded fill. */
     public static void drawFloatingText(Graphics2D g2, FloatingText ft) {
-        // Font size:
-        //   special hit + crit  → 24 (large, commanding)
-        //   normal crit         → 20
-        //   special hit no crit → 15 (same as normal, per design)
-        //   miss / normal       → 15
         int fontSize = (ft.isSpecialHit && ft.isCrit) ? 24
                 : ft.isCrit                      ? 20
                 : 15;
-        int style = ft.isMiss ? Font.BOLD | Font.ITALIC : Font.BOLD;
+        int style = (ft.isMiss || ft.isImmune) ? Font.BOLD | Font.ITALIC : Font.BOLD;
         g2.setFont(new Font("SansSerif", style, fontSize));
         FontMetrics fm = g2.getFontMetrics();
         int tw = fm.stringWidth(ft.text);
         int dx = ft.leftAnchored ? (int) ft.x : (int) ft.x - tw / 2;
-        // Drop shadow
         g2.setColor(new Color(0, 0, 0, ft.alpha / 3));
         g2.drawString(ft.text, dx + 1, (int) ft.y + 1);
-        // Fill color
-        Color c = ft.isMiss                      ? new Color(200, 200, 200, ft.alpha)  // grey
+        Color c = ft.isImmune                    ? new Color(0,   220, 220, ft.alpha)  // cyan
+                : ft.isMiss                      ? new Color(200, 200, 200, ft.alpha)  // grey
                 : ft.isHeal                      ? new Color(80,  230, 80,  ft.alpha)  // green
                 : ft.isSpecialHit && ft.isCrit   ? new Color(255, 215, 0,   ft.alpha)  // gold
-                : ft.isSpecialHit                ? new Color(255, 80,  80,  ft.alpha)  // red (no crit)
-                : ft.isPassiveDmg                ? new Color(80,  150, 255, ft.alpha)  // blue (generic passive)
-                : ft.isCrit                      ? new Color(255, 215, 0,   ft.alpha)  // gold (normal crit)
-                :                                  new Color(255, 80,  80,  ft.alpha); // red (normal)
+                : ft.isSpecialHit                ? new Color(255, 80,  80,  ft.alpha)  // red
+                : ft.isPassiveDmg                ? new Color(80,  150, 255, ft.alpha)  // blue
+                : ft.isCrit                      ? new Color(255, 215, 0,   ft.alpha)  // gold
+                :                                  new Color(255, 80,  80,  ft.alpha); // red
         g2.setColor(c);
         g2.drawString(ft.text, dx, (int) ft.y);
     }
@@ -126,6 +120,18 @@ public class BattleUI {
                                       int spriteW, int tickMs) {
         texts.add(new FloatingText("MISS!", spriteX + spriteW / 2f, spriteY - 10,
                 false, false, false, true, false, tickMs));
+    }
+
+    /**
+     * Spawns an "IMMUNE" popup — shown when a true-damage passive is blocked
+     * by the target's immunity. Cyan color distinguishes it from MISS (grey).
+     */
+    public static void spawnImmunePopup(List<FloatingText> texts, int spriteX, int spriteY,
+                                        int spriteW, int tickMs) {
+        FloatingText ft = new FloatingText("IMMUNE", spriteX + spriteW / 2f, spriteY - 10,
+                false, false, false, false, false, tickMs);
+        ft.isImmune = true;
+        texts.add(ft);
     }
 
     /**
@@ -230,7 +236,15 @@ public class BattleUI {
         g2.fillRoundRect(barX, by, barW, barH, barH, barH);
         double pct = entity.getHpPercent();
         int fillW = Math.max(0, (int)(barW * pct));
-        Color barCol = pct > 0.5 ? colors.green() : pct > 0.25 ? colors.yellow() : colors.red();
+
+        // Color thresholds:
+        //   HP > 50%          → green
+        //   25% < HP <= 50%   → orange
+        //   HP <= 25%         → red
+        Color barCol = pct > 0.50 ? new Color(60,  200, 60)   // green
+                : pct > 0.25 ? new Color(230, 130, 0)    // orange
+                :              new Color(210, 40,  40);   // red
+
         if (fillW > 0) {
             g2.setColor(barCol);
             g2.fillRoundRect(barX, by, fillW, barH, barH, barH);
@@ -340,6 +354,8 @@ public class BattleUI {
             else         g2.drawImage(p.image, sx,     sy,  w, h, null);
         }
     }
+
+    // ── Text utilities ────────────────────────────────────────────────────────
 
     /** Splits text into lines that each fit within maxWidth pixels under the given FontMetrics. */
     public static List<String> wrapText(String text, FontMetrics fm, int maxWidth) {

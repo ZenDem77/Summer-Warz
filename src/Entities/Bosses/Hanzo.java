@@ -3,6 +3,8 @@ package Entities.Bosses;
 import Entities.Enemy;
 import Entities.PassiveHandler.*;
 
+// ─── BOSS 2 ───────────────────────────────────────────────────────────────────
+
 public class Hanzo extends Enemy {
 
     private static final double CRIT_REDUCTION = 0.90;   // 90% crit damage reduction
