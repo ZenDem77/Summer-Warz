@@ -8,7 +8,7 @@ public class GamePanel extends JFrame {
     // ── Window constants ──────────────────────────────────────────────────────
     public static final int WIDTH  = 1280;
     public static final int HEIGHT = 720;
-    public static final String TITLE = "Ninja Warz";
+    public static final String TITLE = "Tower of Suffering";
 
     // ── Singleton ─────────────────────────────────────────────────────────────
     private static GamePanel instance;

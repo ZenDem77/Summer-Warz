@@ -315,7 +315,7 @@ public abstract class Character extends Entity {
     public void applyAscensionBoost(int phase) {
         // Each character subclass overrides this with their own stat increase.
         // e.g.: case 1 -> maxHp += 50; case 2 -> attack += 10; etc.
-    }
+    } //TODO add ascension boost to all chars
 
     // ── Getters ───────────────────────────────────────────────────────────────
     public int      getLevel()               { return level; }

@@ -64,8 +64,16 @@ public class OwnedArtifact extends InventoryItem {
 
     @Override
     public String getName() {
-        // Artifact has no getName() — display its substats as the identifier
-        return artifact.toString();
+        // Use the first substat type as a readable name prefix — no numbers
+        if (artifact.getSubstats().isEmpty()) return "Artifact";
+        String typeName = artifact.getSubstats().get(0).type().name()
+                .replace("_", " ");
+        // Capitalize each word
+        String[] words = typeName.split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (String w : words) sb.append(java.lang.Character.toUpperCase(w.charAt(0)))
+                .append(w.substring(1).toLowerCase()).append(" ");
+        return "Artifact"; //sb.toString().trim() + " Artifact"
     }
 
     @Override
