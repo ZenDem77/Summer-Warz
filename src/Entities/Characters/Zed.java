@@ -100,9 +100,9 @@ public class Zed extends Character {
     @Override
     public void levelUp() {
         switch (checkLevel()) {
-            case 1 -> { maxHp += 3;  attack += 1; }
-            case 2 -> { maxHp += 5;  attack += 2; defense += 1; }
-            case 3 -> { maxHp += 7;  attack += 3; defense += 1; }
+            case 1 -> { maxHp += 2;  attack += 1; }
+            case 2 -> { maxHp += 4;  attack += 2; defense += 1; }
+            case 3 -> { maxHp += 6;  attack += 3; defense += 1; }
             case 4 -> { maxHp += 10; attack += 4; defense += 2; }
         }
     }

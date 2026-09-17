@@ -7,751 +7,674 @@ import Combat.NormalBattle.Battle;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.geom.*;
+import java.awt.image.BufferedImage;
 
 /**
- * BattlePanel — Swing GUI for Ninja Warz 1v1 combat.
+ * BattlePanel — full-screen battle view for Ninja Warz.
  *
- *  Layout
- *  ┌─────────────────────────────────────────┐
- *  │  [Player HP bar]      [Enemy HP bar]    │  ← stat strip
- *  ├─────────────────────────────────────────┤
- *  │                                         │
- *  │          A r e n a   C a n v a s       │  ← animated squares
- *  │                                         │
- *  ├─────────────────────────────────────────┤
- *  │  Battle Log (scrollable text)           │
- *  ├─────────────────────────────────────────┤
- *  │  [Start]  [Reset]   status              │
- *  └─────────────────────────────────────────┘
+ * Layout (1280 × 720, no buttons, no log)
+ * ┌──────────────────────────────────────────────────────────┐
+ * │  [Player name / HP bar]        [Enemy name / HP bar]    │  ← HUD strip (drawn on canvas)
+ * │                                                          │
+ * │          S T A G E   B A C K G R O U N D               │  ← placeholder, swap with gif/png
+ * │                                                          │
+ * │    [Player sprite]                  [Enemy sprite]       │  ← placeholder art, isometric view
+ * │                                                          │
+ * │              "Ready..."  /  "Fight!!"  overlay           │
+ * └──────────────────────────────────────────────────────────┘
+ *
+ * Battle starts automatically:
+ *   construction → 1 s "Ready…" → 0.8 s "Fight!!" → combat begins
  */
 public class BattlePanel extends JPanel implements Battle.BattleListener {
 
+    // ── Window ────────────────────────────────────────────────────────────────
+    private static final int W = 1280;
+    private static final int H = 720;
+
+    // ── Fighter geometry (isometric-ish top-down) ─────────────────────────────
+    // Fighters sit on a perspective "ground plane".  X moves left↔right,
+    // Y moves toward/away from camera (up = further away = smaller on screen).
+    // We project: screenX = worldX,  screenY = baseY - worldY * ISO_SCALE
+    private static final double ISO_SCALE    = 0.55;   // depth compression
+    private static final int    GROUND_BASE  = 530;    // screen Y of the "near" ground edge
+    private static final int    SPRITE_W     = 72;     // placeholder sprite width
+    private static final int    SPRITE_H     = 90;     // placeholder sprite height
+    private static final int    ENGAGE_DIST  = 110;    // world-X gap between fighters when engaged
+    private static final int    APPROACH_SPEED = 5;    // world-X pixels per frame
+
+    // Player starts far left, enemy far right (world coords)
+    private static final int PLAYER_START_X = -500;
+    private static final int ENEMY_START_X  =  500;
+
+    // Target positions when engaged (centred on screen)
+    private static final int PLAYER_TARGET_X = -ENGAGE_DIST / 2;
+    private static final int ENEMY_TARGET_X  =  ENGAGE_DIST / 2;
+
+    // World Y (depth): player is slightly "nearer" (lower Y = closer to camera)
+    private static final int PLAYER_WORLD_Y  = 60;
+    private static final int ENEMY_WORLD_Y   = 90;
+
+    // ── HUD ───────────────────────────────────────────────────────────────────
+    private static final int HUD_H           = 70;     // height of the top HUD strip
+    private static final int BAR_W           = 320;
+    private static final int BAR_H           = 18;
+    private static final int BAR_MARGIN      = 30;     // from screen edge
+
     // ── Timing ────────────────────────────────────────────────────────────────
-    private static final int APPROACH_STEP_MS  = 16;    // ~60 fps approach animation
-    private static final int APPROACH_SPEED    = 4;     // pixels per frame
-    private static final int FIGHTER_SIZE      = 48;    // square side length
-    private static final int ENGAGE_GAP        = 10;    // pixels between squares when fighting
-    private static final int HIT_FLASH_MS      = 120;   // duration of hit-flash per hit
-    private static final int LOG_LIMIT         = 200;
+    private static final int TICK_MS         = 16;     // ~60 fps render loop
+    private static final int READY_MS        = 1200;
+    private static final int FIGHT_MS        = 800;
+    private static final int HIT_FLASH_MS    = 100;
+    private static final int BOB_AMPLITUDE   = 3;      // px
 
     // ── Colors ────────────────────────────────────────────────────────────────
-    private static final Color PLAYER_COLOR       = new Color(40, 100, 220);
-    private static final Color PLAYER_FLASH_COLOR = new Color(150, 200, 255);
-    private static final Color ENEMY_COLOR        = new Color(210, 40, 40);
-    private static final Color ENEMY_FLASH_COLOR  = new Color(255, 160, 160);
-    private static final Color ARENA_BG           = new Color(30, 30, 30);
-    private static final Color GROUND_COLOR       = new Color(60, 55, 50);
+    private static final Color BG_TOP        = new Color(60, 80, 50);
+    private static final Color BG_BOT        = new Color(100, 120, 70);
+    private static final Color GROUND_NEAR   = new Color(130, 110, 70);
+    private static final Color GROUND_FAR    = new Color(80,  90, 55);
+    private static final Color PLAYER_COL    = new Color(50, 120, 240);
+    private static final Color PLAYER_FLASH  = new Color(180, 220, 255);
+    private static final Color ENEMY_COL     = new Color(220, 50, 50);
+    private static final Color ENEMY_FLASH   = new Color(255, 180, 160);
+    private static final Color HUD_BG        = new Color(0, 0, 0, 160);
+    private static final Color BAR_GREEN     = new Color(60, 200, 60);
+    private static final Color BAR_YELLOW    = new Color(230, 190, 0);
+    private static final Color BAR_RED       = new Color(210, 40, 40);
+    private static final Color BAR_EMPTY     = new Color(40, 40, 40);
 
     // ── Battle engine ─────────────────────────────────────────────────────────
     private final Battle battle;
 
-    // ── Timers ────────────────────────────────────────────────────────────────
-    private javax.swing.Timer approachTimer;
+    // ── Render / master timer ─────────────────────────────────────────────────
+    private final javax.swing.Timer renderTimer;
+
+    // ── Intro sequence ────────────────────────────────────────────────────────
+    private enum IntroState { READY, FIGHT, DONE }
+    private IntroState introState   = IntroState.READY;
+    private int        introAlpha   = 0;       // 0-255 fade in
+    private int        introTick    = 0;       // frames elapsed in current state
+    private static final int INTRO_FADE_TICKS = 12;
+    private static final int READY_TICKS  = (int)((READY_MS) / (double)TICK_MS);
+    private static final int FIGHT_TICKS  = (int)((FIGHT_MS) / (double)TICK_MS);
+
+    // ── Attack timers ─────────────────────────────────────────────────────────
     private javax.swing.Timer playerAttackTimer;
     private javax.swing.Timer enemyAttackTimer;
 
-    // ── Animation state ───────────────────────────────────────────────────────
-    private double playerX;   // current X of player square (left edge)
-    private double enemyX;    // current X of enemy square (left edge)
-    private double playerTargetX;
-    private double enemyTargetX;
+    // ── World positions ───────────────────────────────────────────────────────
+    private double playerWorldX = PLAYER_START_X;
+    private double enemyWorldX  = ENEMY_START_X;
+    private boolean approaching = false;   // set to true by beginCombat()
+    private int     bobTick     = 0;
 
-    // bob offset for idle fighting animation
-    private int    bobTick       = 0;
-    private javax.swing.Timer bobTimer;
-
-    // flash state
+    // ── Flash state ───────────────────────────────────────────────────────────
     private boolean playerFlashing = false;
     private boolean enemyFlashing  = false;
-    private javax.swing.Timer playerFlashTimer;
-    private javax.swing.Timer enemyFlashTimer;
+    private int     playerFlashTick = 0;
+    private int     enemyFlashTick  = 0;
 
-    // ── Floating text popups ─────────────────────────────────────────────────
-    // Each popup is independent — new hits never kill existing ones.
+    // ── Floating text ─────────────────────────────────────────────────────────
     private final java.util.List<FloatingText> floatingTexts = new java.util.ArrayList<>();
-    private javax.swing.Timer floatTimer;   // single shared tick for all popups
 
-    // ── FloatingText: one independent damage/heal number ─────────────────────
     private static class FloatingText {
-        static final int DURATION_MS   = 500;   // total lifetime
-        static final int TICK_MS       = 16;    // ~60 fps
-        static final int RISE_PX       = 30;    // total upward travel in pixels
-        static final int SIDE_OFFSET   = 8;     // horizontal offset for side-anchored (heals)
-
+        static final int DURATION_MS = 700;
+        static final int RISE_PX     = 40;
         String  text;
-        float   x, y;           // current draw position
-        int     alpha;          // 0–255
-        boolean isCrit;
-        boolean isHeal;
-        boolean isPassiveDmg;
-        boolean isMiss;
-        boolean leftAnchored;   // true for enemy-side heals (text flows right)
-
-        // ticks remaining and per-tick deltas
+        float   x, y;
+        int     alpha = 255;
+        boolean isCrit, isHeal, isPassiveDmg, isMiss, leftAnchored;
         int   ticksLeft;
-        float dy;               // pixels to rise per tick
-        int   dAlpha;           // alpha to subtract per tick
+        float dy;
+        int   dAlpha;
 
         FloatingText(String text, float x, float y,
                      boolean isCrit, boolean isHeal, boolean isPassiveDmg,
                      boolean isMiss, boolean leftAnchored) {
-            this.text         = text;
-            this.x            = x;
-            this.y            = y;
-            this.alpha        = 255;
-            this.isCrit       = isCrit;
-            this.isHeal       = isHeal;
-            this.isPassiveDmg = isPassiveDmg;
-            this.isMiss       = isMiss;
+            this.text = text; this.x = x; this.y = y;
+            this.isCrit = isCrit; this.isHeal = isHeal;
+            this.isPassiveDmg = isPassiveDmg; this.isMiss = isMiss;
             this.leftAnchored = leftAnchored;
-
-            int totalTicks = DURATION_MS / TICK_MS;
-            this.ticksLeft  = totalTicks;
-            this.dy         = (float) RISE_PX / totalTicks;
-            this.dAlpha     = 255 / totalTicks;
+            int total = DURATION_MS / TICK_MS;
+            ticksLeft = total;
+            dy     = (float) RISE_PX / total;
+            dAlpha = 255 / total;
         }
 
-        /** Advance one tick. Returns false when this popup should be removed. */
-        boolean tick() {
-            y       -= dy;
-            alpha   -= dAlpha;
-            ticksLeft--;
-            return alpha > 0 && ticksLeft > 0;
-        }
+        boolean tick() { y -= dy; alpha -= dAlpha; ticksLeft--; return alpha > 0 && ticksLeft > 0; }
     }
 
-    // ── Arena canvas ──────────────────────────────────────────────────────────
-    private final ArenaCanvas arena;
-
-    // ── End-of-battle overlay ─────────────────────────────────────────────────
-    private Battle.BattleState battleResult = null;   // null = no overlay
-    private int  overlayAlpha  = 0;                   // 0–180 (semi-transparent)
+    // ── End overlay ───────────────────────────────────────────────────────────
+    private Battle.BattleState battleResult = null;
+    private int overlayAlpha = 0;
     private javax.swing.Timer overlayFadeTimer;
 
-    // ── UI widgets ────────────────────────────────────────────────────────────
-    private JProgressBar playerHpBar, enemyHpBar;
-    private JLabel       playerHpLabel, enemyHpLabel;
-    private JTextArea    logArea;
-    private JButton      startBtn, resetBtn;
-    private JLabel       statusLabel;
+    // ── Placeholder sprite images (generated once) ────────────────────────────
+    // Replace BufferedImage fields with ImageIcon / sprite sheet loads later.
+    private final BufferedImage playerSprite;
+    private final BufferedImage enemySprite;
+    private final BufferedImage bgImage;
 
-    // ── Constructor ───────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Constructor
+    // ─────────────────────────────────────────────────────────────────────────
 
     public BattlePanel(Battle battle) {
         this.battle = battle;
         battle.addListener(this);
 
-        setLayout(new BorderLayout(6, 6));
-        setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        setPreferredSize(new Dimension(W, H));
+        setLayout(null);   // we paint everything manually
 
-        arena = new ArenaCanvas();
+        playerSprite = makePlaceholderSprite(PLAYER_COL,
+                battle.getPlayer().getName().substring(0, 1));
+        enemySprite  = makePlaceholderSprite(ENEMY_COL,
+                battle.getEnemy().getName().substring(0, 1));
+        bgImage      = makePlaceholderBg();
 
-        add(buildStatStrip(), BorderLayout.NORTH);
-        add(arena,            BorderLayout.CENTER);
-        add(buildLogPanel(),  BorderLayout.SOUTH);
-
-        // wrap log + controls in a south panel
-        JPanel south = new JPanel(new BorderLayout(4, 4));
-        south.add(buildLogPanel(),     BorderLayout.CENTER);
-        south.add(buildControlPanel(), BorderLayout.SOUTH);
-        add(south, BorderLayout.SOUTH);
-
-        resetPositions();
-        refreshHpBars();
+        // Master render loop
+        renderTimer = new javax.swing.Timer(TICK_MS, e -> tick());
+        renderTimer.start();
     }
 
-    // ── UI builders ───────────────────────────────────────────────────────────
+    // ── Master tick ───────────────────────────────────────────────────────────
 
-    private JPanel buildStatStrip() {
-        JPanel strip = new JPanel(new GridLayout(1, 2, 20, 0));
-        strip.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+    private void tick() {
+        tickIntro();
+        if (approaching) tickApproach();
+        if (!approaching) bobTick++;
 
-        // Player side
-        JPanel pSide = new JPanel(new BorderLayout(4, 2));
-        playerHpBar   = makeHpBar(battle.getPlayer().getMaxHp());
-        playerHpLabel = new JLabel(hpText(battle.getPlayer()));
-        JLabel pName  = new JLabel(battle.getPlayer().getName() + "  [" + ((Character) battle.getPlayer()).getClan() + " Clan]");
-        pName.setFont(pName.getFont().deriveFont(Font.BOLD, 13f));
-        pSide.add(pName,          BorderLayout.NORTH);
-        pSide.add(playerHpBar,    BorderLayout.CENTER);
-        pSide.add(playerHpLabel,  BorderLayout.SOUTH);
+        // Flash timers
+        if (playerFlashing && ++playerFlashTick > HIT_FLASH_MS / TICK_MS) {
+            playerFlashing = false; playerFlashTick = 0;
+        }
+        if (enemyFlashing && ++enemyFlashTick > HIT_FLASH_MS / TICK_MS) {
+            enemyFlashing = false; enemyFlashTick = 0;
+        }
 
-        // Enemy side
-        JPanel eSide = new JPanel(new BorderLayout(4, 2));
-        enemyHpBar   = makeHpBar(battle.getEnemy().getMaxHp());
-        enemyHpLabel = new JLabel(hpText(battle.getEnemy()), SwingConstants.RIGHT);
-        JLabel eName = new JLabel(battle.getEnemy().getName() + "  [" + ((Enemy) battle.getEnemy()).getRank() + "]", SwingConstants.RIGHT);
-        eName.setFont(eName.getFont().deriveFont(Font.BOLD, 13f));
-        eSide.add(eName,         BorderLayout.NORTH);
-        eSide.add(enemyHpBar,    BorderLayout.CENTER);
-        eSide.add(enemyHpLabel,  BorderLayout.SOUTH);
-
-        strip.add(pSide);
-        strip.add(eSide);
-        return strip;
+        floatingTexts.removeIf(ft -> !ft.tick());
+        repaint();
     }
 
-    private JProgressBar makeHpBar(int max) {
-        JProgressBar bar = new JProgressBar(0, max);
-        bar.setValue(max);
-        bar.setStringPainted(false);
-        bar.setForeground(new Color(60, 180, 60));
-        bar.setPreferredSize(new Dimension(0, 14));
-        return bar;
-    }
+    // ── Intro sequence ────────────────────────────────────────────────────────
 
-    private JScrollPane buildLogPanel() {
-        logArea = new JTextArea(6, 50);
-        logArea.setEditable(false);
-        logArea.setLineWrap(true);
-        logArea.setWrapStyleWord(true);
-        logArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
-        JScrollPane sp = new JScrollPane(logArea);
-        sp.setBorder(BorderFactory.createTitledBorder("Battle Log"));
-        sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        sp.setPreferredSize(new Dimension(0, 120));
-        return sp;
-    }
+    private void tickIntro() {
+        if (introState == IntroState.DONE) return;
+        introTick++;
 
-    private JPanel buildControlPanel() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 4));
-        startBtn    = new JButton("Start Battle");
-        resetBtn    = new JButton("Reset");
-        statusLabel = new JLabel("Press Start to begin.");
-        startBtn.addActionListener(this::onStart);
-        resetBtn.addActionListener(this::onReset);
-        p.add(startBtn); p.add(resetBtn); p.add(statusLabel);
-        return p;
-    }
-
-    // ── Control handlers ──────────────────────────────────────────────────────
-
-    private void onStart(ActionEvent e) {
-        if (battle.getState() == Battle.BattleState.ONGOING ||
-                battle.getState() == Battle.BattleState.APPROACHING) return;
-
-        logArea.setText("");
-        battle.start();
-        appendLog("=== Battle Start! ===");
-
-        if (battle.getEnemy() instanceof Enemy en)
-            appendLog(en.getName() + ": \"" + en.getTaunt() + "\"");
-
-        startBtn.setEnabled(false);
-        statusLabel.setText("Approaching…");
-
-        startApproach();
-    }
-
-    private void onReset(ActionEvent e) {
-        battle.stop();
-        stopAllTimers();
-        battle.getPlayer().reset();
-        battle.getEnemy().reset();
-        logArea.setText("");
-        startBtn.setEnabled(true);
-        statusLabel.setText("Press Start to begin.");
-        playerFlashing = false;
-        enemyFlashing  = false;
-        floatingTexts.clear();
-        battleResult = null;
-        overlayAlpha = 0;
-        resetPositions();
-        refreshHpBars();
-        arena.repaint();
-    }
-
-    // ── Approach animation ────────────────────────────────────────────────────
-
-    private void resetPositions() {
-        // Will be computed relative to arena size; use placeholder until painted
-        playerX = -FIGHTER_SIZE;   // off-screen left
-        enemyX  = 9999;            // off-screen right (corrected in approach)
-    }
-
-    private void startApproach() {
-        // Compute targets: player left of centre, enemy right of centre
-        int w = arena.getWidth();
-        int mid = w / 2;
-        playerTargetX = mid - FIGHTER_SIZE - ENGAGE_GAP / 2.0;
-        enemyTargetX  = mid + ENGAGE_GAP / 2.0;
-
-        // Start positions: outside the canvas
-        playerX = -FIGHTER_SIZE;
-        enemyX  = w;
-
-        approachTimer = new javax.swing.Timer(APPROACH_STEP_MS, ev -> {
-            boolean pDone = false, eDone = false;
-
-            if (playerX < playerTargetX) {
-                playerX = Math.min(playerX + APPROACH_SPEED, playerTargetX);
-            } else pDone = true;
-
-            if (enemyX > enemyTargetX) {
-                enemyX = Math.max(enemyX - APPROACH_SPEED, enemyTargetX);
-            } else eDone = true;
-
-            arena.repaint();
-
-            if (pDone && eDone) {
-                approachTimer.stop();
-                battle.setEngaged();
-                statusLabel.setText("Fighting…");
-                startCombatTimers();
-                startBobTimer();
+        if (introState == IntroState.READY) {
+            introAlpha = Math.min(255, introTick * (255 / INTRO_FADE_TICKS));
+            if (introTick >= READY_TICKS) {
+                introState = IntroState.FIGHT;
+                introTick  = 0;
+                introAlpha = 0;
             }
-        });
-        approachTimer.start();
+        } else if (introState == IntroState.FIGHT) {
+            introAlpha = Math.min(255, introTick * (255 / INTRO_FADE_TICKS));
+            if (introTick >= FIGHT_TICKS) {
+                introState = IntroState.DONE;
+                introAlpha = 0;
+                beginCombat();
+            }
+        }
     }
 
-    // ── Combat timers ─────────────────────────────────────────────────────────
+    private boolean combatStarted = false;  // true once intro finishes
+
+    private void beginCombat() {
+        battle.start();
+        combatStarted = true;
+        approaching   = true;   // arm the approach now that battle.start() has been called
+    }
+
+    // ── Approach ──────────────────────────────────────────────────────────────
+
+    private void tickApproach() {
+        if (!combatStarted) return;   // don't move until intro is done
+        boolean pDone = false, eDone = false;
+        if (playerWorldX < PLAYER_TARGET_X) playerWorldX = Math.min(playerWorldX + APPROACH_SPEED, PLAYER_TARGET_X);
+        else pDone = true;
+        if (enemyWorldX  > ENEMY_TARGET_X)  enemyWorldX  = Math.max(enemyWorldX  - APPROACH_SPEED, ENEMY_TARGET_X);
+        else eDone = true;
+
+        if (pDone && eDone) {
+            approaching = false;
+            battle.setEngaged();
+            startCombatTimers();
+        }
+    }
 
     private void startCombatTimers() {
-        playerAttackTimer = new javax.swing.Timer(battle.getPlayer().getAttackSpeed(), ev -> {
+        playerAttackTimer = new javax.swing.Timer(battle.getPlayer().getAttackSpeed(), e -> {
             battle.playerTick();
-            refreshHpBars();
         });
         playerAttackTimer.setInitialDelay(0);
         playerAttackTimer.start();
 
-        enemyAttackTimer = new javax.swing.Timer(battle.getEnemy().getAttackSpeed(), ev -> {
+        enemyAttackTimer = new javax.swing.Timer(battle.getEnemy().getAttackSpeed(), e -> {
             battle.enemyTick();
-            refreshHpBars();
         });
         enemyAttackTimer.setInitialDelay(0);
         enemyAttackTimer.start();
     }
 
-    private void startBobTimer() {
-        bobTimer = new javax.swing.Timer(APPROACH_STEP_MS, ev -> {
-            bobTick++;
-            arena.repaint();
-        });
-        bobTimer.start();
+    private void stopAllTimers() {
+        renderTimer.stop();
+        if (playerAttackTimer != null) playerAttackTimer.stop();
+        if (enemyAttackTimer  != null) enemyAttackTimer.stop();
+        if (overlayFadeTimer  != null) overlayFadeTimer.stop();
+        battle.stop();
     }
 
     // ── Battle.BattleListener ─────────────────────────────────────────────────
 
     @Override
-    public void onPlayerAttack(String logEntry, int damage, boolean isCrit, boolean isMiss) {
+    public void onPlayerAttack(String log, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
-            appendLog(logEntry);
-            if (isMiss) {
-                spawnMissPopup(false);
-            } else {
-                flashEnemy();
-                showDamageDisplay(false, damage, isCrit);
-            }
-            refreshHpBars();
+            if (isMiss) spawnMissPopup(false);
+            else { enemyFlashing = true; enemyFlashTick = 0; showDmgPopup(false, damage, isCrit); }
         });
     }
 
     @Override
-    public void onEnemyAttack(String logEntry, int damage, boolean isCrit, boolean isMiss) {
+    public void onEnemyAttack(String log, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
-            appendLog(logEntry);
-            if (isMiss) {
-                spawnMissPopup(true);
-            } else {
-                flashPlayer();
-                showDamageDisplay(true, damage, isCrit);
-            }
-            refreshHpBars();
+            if (isMiss) spawnMissPopup(true);
+            else { playerFlashing = true; playerFlashTick = 0; showDmgPopup(true, damage, isCrit); }
         });
     }
 
     @Override
-    public void onPassive(String logEntry, Entity owner, int amount, boolean isHeal) {
+    public void onPassive(String log, Entity owner, int amount, boolean isHeal) {
         SwingUtilities.invokeLater(() -> {
-            appendLog(logEntry);
-            // Damage passive: popup on the opponent of the owner
-            // Heal passive:   popup on the owner themselves
-            boolean onPlayer = isHeal
-                    ? (owner == battle.getPlayer())
-                    : (owner != battle.getPlayer());
-            showPassivePopup(onPlayer, amount, isHeal);
-            refreshHpBars();
+            boolean onPlayer = isHeal ? (owner == battle.getPlayer()) : (owner != battle.getPlayer());
+            spawnPassivePopup(onPlayer, amount, isHeal);
         });
     }
 
     @Override
     public void onBattleEnd(Battle.BattleState result) {
         SwingUtilities.invokeLater(() -> {
-            stopAllTimers();
-            String msg = switch (result) {
-                case PLAYER_WIN -> battle.getPlayer().getName() + " wins!";
-                case ENEMY_WIN  -> battle.getEnemy().getName()  + " wins!";
-                default         -> "Battle over.";
-            };
-            appendLog("=== " + msg + " ===");
-            statusLabel.setText(msg);
-            refreshHpBars();
-
-            // Brief pause, then fade in the result overlay
-            new javax.swing.Timer(400, e -> {
-                ((javax.swing.Timer) e.getSource()).stop();
-                battleResult = result;
-                overlayAlpha = 0;
-                overlayFadeTimer = new javax.swing.Timer(16, ev -> {
-                    overlayAlpha = Math.min(overlayAlpha + 8, 180);
-                    arena.repaint();
-                    if (overlayAlpha >= 180) overlayFadeTimer.stop();
-                });
-                overlayFadeTimer.start();
-            }) {{ setRepeats(false); start(); }};
+            if (playerAttackTimer != null) playerAttackTimer.stop();
+            if (enemyAttackTimer  != null) enemyAttackTimer.stop();
+            battleResult = result;
+            overlayAlpha = 0;
+            overlayFadeTimer = new javax.swing.Timer(TICK_MS, e -> {
+                overlayAlpha = Math.min(overlayAlpha + 6, 200);
+                if (overlayAlpha >= 200) overlayFadeTimer.stop();
+            });
+            overlayFadeTimer.start();
         });
     }
 
-    // ── Flash helpers ─────────────────────────────────────────────────────────
+    // ── Popup helpers ─────────────────────────────────────────────────────────
 
-    private void flashPlayer() {
-        playerFlashing = true;
-        arena.repaint();
-        if (playerFlashTimer != null) playerFlashTimer.stop();
-        playerFlashTimer = new javax.swing.Timer(HIT_FLASH_MS, ev -> {
-            playerFlashing = false;
-            arena.repaint();
-            playerFlashTimer.stop();
-        });
-        playerFlashTimer.start();
-    }
-
-    private void flashEnemy() {
-        enemyFlashing = true;
-        arena.repaint();
-        if (enemyFlashTimer != null) enemyFlashTimer.stop();
-        enemyFlashTimer = new javax.swing.Timer(HIT_FLASH_MS, ev -> {
-            enemyFlashing = false;
-            arena.repaint();
-            enemyFlashTimer.stop();
-        });
-        enemyFlashTimer.start();
-    }
-
-    // ── Damage popup helpers ──────────────────────────────────────────────────
-
-    /**
-     * Spawns a floating text popup that rises and fades independently.
-     * Multiple popups can coexist without cancelling each other.
-     *
-     * @param onPlayer    true = above/beside the player square; false = enemy square
-     * @param text        the string to display (e.g. "-18", "+20", "-20!")
-     * @param isCrit      gold colour and larger font
-     * @param isHeal      green colour; positioned beside entity rather than above
-     * @param isPassiveDmg blue colour (passive bypass damage)
-     */
-    private void spawnPopup(boolean onPlayer, String text,
-                            boolean isCrit, boolean isHeal, boolean isPassiveDmg) {
-        int squareY   = getSquareY();
-        float spawnX, spawnY;
-        boolean leftAnchored;
-
-        if (isHeal) {
-            // Heals appear beside the entity
-            if (onPlayer) {
-                // Player is on the left — text floats to the left of the square
-                spawnX       = (float) playerX - FloatingText.SIDE_OFFSET;
-                leftAnchored = false;   // right-edge anchored (text drawn ending at x)
-            } else {
-                // Enemy is on the right — text floats to the right of the square
-                spawnX       = (float) enemyX + FIGHTER_SIZE + FloatingText.SIDE_OFFSET;
-                leftAnchored = true;
-            }
-            spawnY = squareY + FIGHTER_SIZE / 2f;
-        } else {
-            // Damage appears above the entity, horizontally centred
-            spawnX       = onPlayer
-                    ? (float) playerX + FIGHTER_SIZE / 2f
-                    : (float) enemyX  + FIGHTER_SIZE / 2f;
-            spawnY       = squareY - 20;
-            leftAnchored = false;
-        }
-
-        FloatingText ft = new FloatingText(text, spawnX, spawnY,
-                isCrit, isHeal, isPassiveDmg, false, leftAnchored);
-        floatingTexts.add(ft);
-        ensureFloatTimer();
-    }
-
-    private void showDamageDisplay(boolean onPlayer, int dmg, boolean isCrit) {
-        spawnPopup(onPlayer, "-" + dmg + (isCrit ? "!!" : ""), isCrit, false, false);
-    }
-
-    private void showPassivePopup(boolean onPlayer, int amount, boolean isHeal) {
-        spawnPopup(onPlayer, (isHeal ? "+" : "-") + amount, false, isHeal, !isHeal);
+    private void showDmgPopup(boolean onPlayer, int dmg, boolean isCrit) {
+        Point sp = spriteScreenPos(onPlayer ? playerWorldX : enemyWorldX,
+                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
+        float sx = sp.x + SPRITE_W / 2f;
+        float sy = sp.y - 10;
+        String txt = "-" + dmg + (isCrit ? "!" : "");
+        floatingTexts.add(new FloatingText(txt, sx, sy, isCrit, false, false, false, false));
     }
 
     private void spawnMissPopup(boolean onPlayer) {
-        int squareY = getSquareY();
-        float spawnX = onPlayer
-                ? (float) playerX + FIGHTER_SIZE / 2f
-                : (float) enemyX  + FIGHTER_SIZE / 2f;
-        float spawnY = squareY - 20;
-        FloatingText ft = new FloatingText("MISS!", spawnX, spawnY,
-                false, false, false, true, false);
-        floatingTexts.add(ft);
-        ensureFloatTimer();
+        Point sp = spriteScreenPos(onPlayer ? playerWorldX : enemyWorldX,
+                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
+        floatingTexts.add(new FloatingText("MISS!", sp.x + SPRITE_W / 2f, sp.y - 10,
+                false, false, false, true, false));
     }
 
-    /** Lazily starts (or keeps alive) the shared float animation timer. */
-    private void ensureFloatTimer() {
-        if (floatTimer != null && floatTimer.isRunning()) return;
-        floatTimer = new javax.swing.Timer(FloatingText.TICK_MS, ev -> {
-            floatingTexts.removeIf(ft -> !ft.tick());
-            arena.repaint();
-            if (floatingTexts.isEmpty()) floatTimer.stop();
-        });
-        floatTimer.start();
-    }
-
-    /** Returns the current top-Y of the fighter squares (used for popup spawn positions). */
-    private int getSquareY() {
-        int h = arena.getHeight();
-        int groundY = (int)(h * 0.78);
-        return groundY - FIGHTER_SIZE;
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private void stopAllTimers() {
-        if (approachTimer     != null) approachTimer.stop();
-        if (playerAttackTimer != null) playerAttackTimer.stop();
-        if (enemyAttackTimer  != null) enemyAttackTimer.stop();
-        if (bobTimer          != null) bobTimer.stop();
-        if (playerFlashTimer  != null) playerFlashTimer.stop();
-        if (enemyFlashTimer   != null) enemyFlashTimer.stop();
-        if (floatTimer        != null) floatTimer.stop();
-        if (overlayFadeTimer  != null) overlayFadeTimer.stop();
-        floatingTexts.clear();
-    }
-
-    private void refreshHpBars() {
-        Entity p = battle.getPlayer();
-        Entity e = battle.getEnemy();
-
-        playerHpBar.setValue(p.getCurrentHp());
-        playerHpLabel.setText(hpText(p));
-        updateBarColor(playerHpBar, p.getHpPercent());
-
-        enemyHpBar.setValue(e.getCurrentHp());
-        enemyHpLabel.setText(hpText(e));
-        updateBarColor(enemyHpBar, e.getHpPercent());
-    }
-
-    private void updateBarColor(JProgressBar bar, double pct) {
-        if      (pct > 0.5)  bar.setForeground(new Color(60, 180, 60));
-        else if (pct > 0.25) bar.setForeground(new Color(220, 180, 0));
-        else                 bar.setForeground(new Color(200, 40, 40));
-    }
-
-    private void appendLog(String text) {
-        logArea.append(text + "\n");
-        String[] lines = logArea.getText().split("\n");
-        if (lines.length > LOG_LIMIT) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = lines.length - LOG_LIMIT; i < lines.length; i++)
-                sb.append(lines[i]).append("\n");
-            logArea.setText(sb.toString());
+    private void spawnPassivePopup(boolean onPlayer, int amount, boolean isHeal) {
+        Point sp = spriteScreenPos(onPlayer ? playerWorldX : enemyWorldX,
+                onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y);
+        String txt = (isHeal ? "+" : "-") + amount;
+        boolean leftAnchored;
+        float sx, sy;
+        if (isHeal) {
+            // Heal: beside the sprite
+            leftAnchored = !onPlayer;  // enemy side → text goes right
+            sx = onPlayer ? sp.x - 8 : sp.x + SPRITE_W + 8;
+            sy = sp.y + SPRITE_H / 2f;
+        } else {
+            leftAnchored = false;
+            sx = sp.x + SPRITE_W / 2f;
+            sy = sp.y - 10;
         }
-        logArea.setCaretPosition(logArea.getDocument().getLength());
+        floatingTexts.add(new FloatingText(txt, sx, sy, false, isHeal, !isHeal, false, leftAnchored));
     }
 
-    private String hpText(Entity e) {
-        return e.getCurrentHp() + " / " + e.getMaxHp() + " HP";
+    // ── Projection helper ─────────────────────────────────────────────────────
+
+    /** Converts world (x, depth) to screen pixel position (top-left of sprite). */
+    private Point spriteScreenPos(double worldX, double worldY) {
+        int sx = (int)(W / 2.0 + worldX) - SPRITE_W / 2;
+        int sy = (int)(GROUND_BASE - worldY * ISO_SCALE) - SPRITE_H;
+        return new Point(sx, sy);
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Inner class: Arena Canvas
-    // ═════════════════════════════════════════════════════════════════════════
+    // ── Placeholder asset generators ──────────────────────────────────────────
 
-    private class ArenaCanvas extends JPanel {
+    /**
+     * Creates a simple coloured rectangle with an initial letter as placeholder art.
+     * Replace this with ImageIO.read(getClass().getResource("/res/...")) later.
+     */
+    private BufferedImage makePlaceholderSprite(Color base, String initial) {
+        BufferedImage img = new BufferedImage(SPRITE_W, SPRITE_H, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        ArenaCanvas() {
-            setPreferredSize(new Dimension(600, 200));
-            setBackground(ARENA_BG);
+        // Body — slightly tapered rectangle to hint at perspective
+        int[] xs = { 4, SPRITE_W - 4, SPRITE_W - 10, 10 };
+        int[] ys = { 0, 0, SPRITE_H, SPRITE_H };
+        g.setColor(base);
+        g.fillPolygon(xs, ys, 4);
+        g.setColor(base.darker());
+        g.setStroke(new BasicStroke(2));
+        g.drawPolygon(xs, ys, 4);
+
+        // Initial letter centred
+        g.setFont(new Font("SansSerif", Font.BOLD, 28));
+        g.setColor(new Color(255, 255, 255, 200));
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(initial, (SPRITE_W - fm.stringWidth(initial)) / 2, SPRITE_H / 2 + fm.getAscent() / 2 - 4);
+
+        g.dispose();
+        return img;
+    }
+
+    /**
+     * Creates a simple top-down grass/ground placeholder background.
+     * Replace with:
+     *   bgImage = new ImageIcon(getClass().getResource("/res/stage_bg.png")).getImage();
+     */
+    private BufferedImage makePlaceholderBg() {
+        BufferedImage img = new BufferedImage(W, H, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+
+        // Sky gradient
+        GradientPaint sky = new GradientPaint(0, 0, new Color(100, 130, 180),
+                0, GROUND_BASE - 60, new Color(160, 185, 140));
+        g.setPaint(sky);
+        g.fillRect(0, 0, W, GROUND_BASE - 60);
+
+        // Ground — perspective trapezoid
+        int[] gx = { 0,   W,    W,    0 };
+        int[] gy = { GROUND_BASE - 60, GROUND_BASE - 60, H, H };
+        GradientPaint ground = new GradientPaint(0, GROUND_BASE - 60, GROUND_FAR,
+                0, H,               GROUND_NEAR);
+        g.setPaint(ground);
+        g.fillPolygon(gx, gy, 4);
+
+        // Grid lines to reinforce perspective
+        g.setColor(new Color(0, 0, 0, 25));
+        g.setStroke(new BasicStroke(1));
+        int vp = W / 2;  // vanishing point X
+        for (int i = -8; i <= 8; i++) {
+            int baseX = vp + i * 90;
+            g.drawLine(vp, GROUND_BASE - 60, baseX, H);
         }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-            int w = getWidth(), h = getHeight();
-            int groundY = (int)(h * 0.78);   // ground line
-            int squareY = groundY - FIGHTER_SIZE;  // top of squares
-
-            // ── Ground ────────────────────────────────────────────────────────
-            g2.setColor(GROUND_COLOR);
-            g2.fillRect(0, groundY, w, h - groundY);
-
-            // ── Centre line (subtle) ──────────────────────────────────────────
-            g2.setColor(new Color(80, 80, 80));
-            g2.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL,
-                    0, new float[]{4, 4}, 0));
-            g2.drawLine(w / 2, 0, w / 2, groundY);
-            g2.setStroke(new BasicStroke(1));
-
-            // ── Bob offset (idle fighting oscillation) ────────────────────────
-            int state = battle.getState().ordinal();
-            boolean engaged = battle.getState() == Battle.BattleState.ONGOING
-                    || battle.getState() == Battle.BattleState.PLAYER_WIN
-                    || battle.getState() == Battle.BattleState.ENEMY_WIN;
-
-            int playerBob = engaged ? (int)(Math.sin(bobTick * 0.18) * 3) : 0;
-            int enemyBob  = engaged ? (int)(Math.sin(bobTick * 0.18 + Math.PI) * 3) : 0;
-
-            // ── Draw player square ────────────────────────────────────────────
-            int px = (int) playerX;
-            int py = squareY + playerBob;
-            Color pColor = playerFlashing ? PLAYER_FLASH_COLOR : PLAYER_COLOR;
-            // shadow
-            g2.setColor(new Color(0, 0, 0, 60));
-            g2.fillOval(px + 4, groundY - 4, FIGHTER_SIZE - 8, 8);
-            // body
-            g2.setColor(pColor);
-            g2.fillRoundRect(px, py, FIGHTER_SIZE, FIGHTER_SIZE, 8, 8);
-            g2.setColor(pColor.darker());
-            g2.setStroke(new BasicStroke(2));
-            g2.drawRoundRect(px, py, FIGHTER_SIZE, FIGHTER_SIZE, 8, 8);
-            // label
-            drawCenteredLabel(g2, battle.getPlayer().getName(), px + FIGHTER_SIZE / 2, py - 6, Color.WHITE);
-
-            // ── Draw enemy square ─────────────────────────────────────────────
-            int ex = (int) enemyX;
-            int ey = squareY + enemyBob;
-            Color eColor = enemyFlashing ? ENEMY_FLASH_COLOR : ENEMY_COLOR;
-            // shadow
-            g2.setColor(new Color(0, 0, 0, 60));
-            g2.fillOval(ex + 4, groundY - 4, FIGHTER_SIZE - 8, 8);
-            // body
-            g2.setColor(eColor);
-            g2.fillRoundRect(ex, ey, FIGHTER_SIZE, FIGHTER_SIZE, 8, 8);
-            g2.setColor(eColor.darker());
-            g2.drawRoundRect(ex, ey, FIGHTER_SIZE, FIGHTER_SIZE, 8, 8);
-            // label
-            drawCenteredLabel(g2, battle.getEnemy().getName(), ex + FIGHTER_SIZE / 2, ey - 6, Color.WHITE);
-
-            // ── Floating text popups ─────────────────────────────────────────
-            for (FloatingText ft : floatingTexts) {
-                if (ft.isMiss) {
-                    drawMissText(g2, ft.text, (int) ft.x, (int) ft.y, ft.alpha);
-                } else {
-                    drawDamageText(g2, ft.text, (int) ft.x, (int) ft.y, ft.alpha,
-                            ft.isCrit, ft.isHeal, ft.isPassiveDmg, ft.leftAnchored);
-                }
-            }
-
-            // ── Dead X overlay ────────────────────────────────────────────────
-            if (!battle.getPlayer().isAlive()) drawDeadX(g2, px, py);
-            if (!battle.getEnemy().isAlive())  drawDeadX(g2, ex, ey);
-
-            // ── Victory / Defeat overlay ──────────────────────────────────────
-            if (battleResult != null) drawResultOverlay(g2, w, h);
-
-            g2.dispose();
+        for (int row = 0; row <= 8; row++) {
+            double t = row / 8.0;
+            int y = (int)(GROUND_BASE - 60 + t * (H - (GROUND_BASE - 60)));
+            // converging horizontal lines
+            int lx = (int)(vp - (vp) * t);
+            int rx = (int)(vp + (W - vp) * t);
+            g.drawLine(lx, y, rx, y);
         }
 
-        private void drawCenteredLabel(Graphics2D g2, String text, int cx, int y, Color color) {
-            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 11f));
-            FontMetrics fm = g2.getFontMetrics();
-            int tw = fm.stringWidth(text);
-            g2.setColor(new Color(0, 0, 0, 150));
-            g2.drawString(text, cx - tw / 2 + 1, y + 1);
-            g2.setColor(color);
-            g2.drawString(text, cx - tw / 2, y);
+        // Placeholder label
+        g.setFont(new Font("SansSerif", Font.BOLD | Font.ITALIC, 14));
+        g.setColor(new Color(255, 255, 255, 80));
+        String label = "[ Stage Background Placeholder — replace with /res/stage_bg.gif ]";
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(label, (W - fm.stringWidth(label)) / 2, GROUND_BASE - 70);
+
+        g.dispose();
+        return img;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  paintComponent — draws everything
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,      RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING,         RenderingHints.VALUE_RENDER_QUALITY);
+
+        // 1. Background
+        g2.drawImage(bgImage, 0, 0, null);
+
+        // 2. Sprites
+        drawSprite(g2, battle.getPlayer(), playerWorldX, PLAYER_WORLD_Y,
+                playerSprite, playerFlashing ? PLAYER_FLASH : null, false);
+        drawSprite(g2, battle.getEnemy(), enemyWorldX, ENEMY_WORLD_Y,
+                enemySprite,  enemyFlashing  ? ENEMY_FLASH  : null, true);
+
+        // 3. HUD
+        drawHud(g2);
+
+        // 4. Floating text
+        for (FloatingText ft : floatingTexts) {
+            drawFloatingText(g2, ft);
         }
 
-        private void drawDamageText(Graphics2D g2, String text, int x, int y, int alpha,
-                                    boolean isCrit, boolean isHeal, boolean isPassiveDmg,
-                                    boolean leftAnchored) {
-            float size = isCrit ? 17f : 14f;
-            g2.setFont(g2.getFont().deriveFont(Font.BOLD, size));
-            FontMetrics fm = g2.getFontMetrics();
-            int tw = fm.stringWidth(text);
-            Color c = isHeal        ? new Color(80, 220, 80, alpha)    // green  — heal
-                    : isPassiveDmg  ? new Color(80, 140, 255, alpha)   // blue   — passive damage
-                    : isCrit        ? new Color(255, 210, 0, alpha)     // gold   — crit
-                    :                 new Color(255, 80, 80, alpha);    // red    — normal hit
-            g2.setColor(c);
-            int drawX = leftAnchored ? x : x - tw / 2;
-            g2.drawString(text, drawX, y);
+        // 5. Intro overlay (Ready / Fight)
+        if (introState != IntroState.DONE) drawIntroText(g2);
+
+        // 6. Result overlay
+        if (battleResult != null) drawResultOverlay(g2);
+    }
+
+    // ── Draw: sprite ──────────────────────────────────────────────────────────
+
+    private void drawSprite(Graphics2D g2, Entity entity, double worldX, double worldY,
+                            BufferedImage sprite, Color flashColor, boolean flipX) {
+        Point pos = spriteScreenPos(worldX, worldY);
+        int sx = pos.x, sy = pos.y;
+
+        // Bob when engaged
+        int bob = (!approaching && entity.isAlive())
+                ? (int)(Math.sin(bobTick * 0.15 + (flipX ? Math.PI : 0)) * BOB_AMPLITUDE)
+                : 0;
+        sy += bob;
+
+        // Shadow ellipse on the ground
+        int shadowY = (int)(GROUND_BASE - worldY * ISO_SCALE);
+        g2.setColor(new Color(0, 0, 0, 55));
+        g2.fillOval(sx + 8, shadowY - 8, SPRITE_W - 16, 14);
+
+        // Draw sprite (flip enemy horizontally to face left)
+        if (flipX) {
+            g2.drawImage(sprite, sx + SPRITE_W, sy, -SPRITE_W, SPRITE_H, null);
+        } else {
+            g2.drawImage(sprite, sx, sy, null);
         }
 
-
-        private void drawResultOverlay(Graphics2D g2, int w, int h) {
-            boolean won = battleResult == Battle.BattleState.PLAYER_WIN;
-
-            // ── Dark veil ─────────────────────────────────────────────────────
-            g2.setColor(new Color(0, 0, 0, overlayAlpha));
-            g2.fillRect(0, 0, w, h);
-
-            // ── Coloured banner ───────────────────────────────────────────────
-            Color bannerColor = won
-                    ? new Color(30, 120, 30, overlayAlpha)
-                    : new Color(120, 20, 20, overlayAlpha);
-            int bannerH = h / 3;
-            int bannerY = h / 2 - bannerH / 2;
-            g2.setColor(bannerColor);
-            g2.fillRoundRect(w / 6, bannerY, w * 2 / 3, bannerH, 16, 16);
-            g2.setColor(new Color(255, 255, 255, Math.min(overlayAlpha + 40, 255)));
-            g2.setStroke(new BasicStroke(2));
-            g2.drawRoundRect(w / 6, bannerY, w * 2 / 3, bannerH, 16, 16);
-            g2.setStroke(new BasicStroke(1));
-
-            // ── Headline ──────────────────────────────────────────────────────
-            String headline = won ? "VICTORY" : "DEFEAT";
-            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 36f));
-            FontMetrics fmH = g2.getFontMetrics();
-            int headW = fmH.stringWidth(headline);
-            int headY = bannerY + bannerH / 2 - 4;
-            // shadow
-            g2.setColor(new Color(0, 0, 0, overlayAlpha));
-            g2.drawString(headline, w / 2 - headW / 2 + 2, headY + 2);
-            // text
-            Color headColor = won
-                    ? new Color(180, 255, 130, overlayAlpha)
-                    : new Color(255, 120, 100, overlayAlpha);
-            g2.setColor(headColor);
-            g2.drawString(headline, w / 2 - headW / 2, headY);
-
-            // ── Subtitle ──────────────────────────────────────────────────────
-            String sub = won
-                    ? battle.getPlayer().getName() + " defeated " + battle.getEnemy().getName() + "!"
-                    : battle.getEnemy().getName()  + " has defeated " + battle.getPlayer().getName() + "!";
-            g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 13f));
-            FontMetrics fmS = g2.getFontMetrics();
-            int subW = fmS.stringWidth(sub);
-            int subY = headY + fmH.getHeight() - 4;
-            g2.setColor(new Color(220, 220, 220, overlayAlpha));
-            g2.drawString(sub, w / 2 - subW / 2, subY);
-
-            // ── Reset prompt ──────────────────────────────────────────────────
-            String prompt = "Press Reset to play again";
-            g2.setFont(g2.getFont().deriveFont(Font.ITALIC, 11f));
-            FontMetrics fmP = g2.getFontMetrics();
-            int promptW = fmP.stringWidth(prompt);
-            g2.setColor(new Color(160, 160, 160, overlayAlpha));
-            g2.drawString(prompt, w / 2 - promptW / 2, bannerY + bannerH - 10);
+        // Flash overlay
+        if (flashColor != null) {
+            g2.setColor(new Color(flashColor.getRed(), flashColor.getGreen(),
+                    flashColor.getBlue(), 140));
+            g2.fillRect(sx, sy, SPRITE_W, SPRITE_H);
         }
 
-        private void drawMissText(Graphics2D g2, String text, int cx, int y, int alpha) {
-            g2.setFont(g2.getFont().deriveFont(Font.BOLD | Font.ITALIC, 14f));
-            FontMetrics fm = g2.getFontMetrics();
-            int tw = fm.stringWidth(text);
-            g2.setColor(new Color(200, 200, 200, alpha));
-            g2.drawString(text, cx - tw / 2, y);
-        }
-
-        private void drawDeadX(Graphics2D g2, int x, int y) {
-            g2.setColor(new Color(255, 255, 255, 180));
+        // Dead X
+        if (!entity.isAlive()) {
+            g2.setColor(new Color(255, 255, 255, 200));
             g2.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            int pad = 10;
-            g2.drawLine(x + pad, y + pad, x + FIGHTER_SIZE - pad, y + FIGHTER_SIZE - pad);
-            g2.drawLine(x + FIGHTER_SIZE - pad, y + pad, x + pad, y + FIGHTER_SIZE - pad);
+            int pad = 14;
+            g2.drawLine(sx + pad, sy + pad, sx + SPRITE_W - pad, sy + SPRITE_H - pad);
+            g2.drawLine(sx + SPRITE_W - pad, sy + pad, sx + pad, sy + SPRITE_H - pad);
             g2.setStroke(new BasicStroke(1));
         }
+
+        // Name tag below sprite
+        g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+        FontMetrics fm = g2.getFontMetrics();
+        String name = entity.getName();
+        int tw = fm.stringWidth(name);
+        g2.setColor(new Color(0, 0, 0, 140));
+        g2.fillRoundRect(sx + SPRITE_W / 2 - tw / 2 - 4, shadowY + 2, tw + 8, 14, 6, 6);
+        g2.setColor(Color.WHITE);
+        g2.drawString(name, sx + SPRITE_W / 2 - tw / 2, shadowY + 13);
+    }
+
+    // ── Draw: HUD ─────────────────────────────────────────────────────────────
+
+    private void drawHud(Graphics2D g2) {
+        // Semi-transparent top bar
+        g2.setColor(HUD_BG);
+        g2.fillRect(0, 0, W, HUD_H);
+
+        // Player side (left)
+        Entity p = battle.getPlayer();
+        String pLabel = p.getName() + (p instanceof Character c ? "  [" + c.getClan() + " Clan]" : "");
+        drawHudEntry(g2, pLabel, p, BAR_MARGIN, false);
+
+        // Enemy side (right)
+        Entity e = battle.getEnemy();
+        String eLabel = e.getName() + (e instanceof Enemy en ? "  [" + en.getRank() + "]" : "");
+        drawHudEntry(g2, eLabel, e, W - BAR_MARGIN - BAR_W, true);
+    }
+
+    private void drawHudEntry(Graphics2D g2, String label, Entity entity, int barX, boolean rightAlign) {
+        int barY = 16;
+
+        // Name
+        g2.setFont(new Font("SansSerif", Font.BOLD, 13));
+        FontMetrics fm = g2.getFontMetrics();
+        String name = label;
+        int nx = rightAlign ? barX + BAR_W - fm.stringWidth(name) : barX;
+        g2.setColor(Color.WHITE);
+        g2.drawString(name, nx, barY + 11);
+
+        // HP bar background
+        int by = barY + 18;
+        g2.setColor(BAR_EMPTY);
+        g2.fillRoundRect(barX, by, BAR_W, BAR_H, BAR_H, BAR_H);
+
+        // HP bar fill
+        double pct = entity.getHpPercent();
+        int fillW = Math.max(0, (int)(BAR_W * pct));
+        Color barCol = pct > 0.5 ? BAR_GREEN : pct > 0.25 ? BAR_YELLOW : BAR_RED;
+        if (fillW > 0) {
+            g2.setColor(barCol);
+            g2.fillRoundRect(barX, by, fillW, BAR_H, BAR_H, BAR_H);
+            // Highlight gloss
+            g2.setColor(new Color(255, 255, 255, 50));
+            g2.fillRoundRect(barX, by, fillW, BAR_H / 2, BAR_H, BAR_H);
+        }
+        g2.setColor(new Color(0, 0, 0, 120));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(barX, by, BAR_W, BAR_H, BAR_H, BAR_H);
+        g2.setStroke(new BasicStroke(1));
+
+        // HP numbers
+        g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+        fm = g2.getFontMetrics();
+        String hp = entity.getCurrentHp() + " / " + entity.getMaxHp();
+        int hx = rightAlign ? barX + BAR_W - fm.stringWidth(hp) : barX;
+        g2.setColor(new Color(220, 220, 220));
+        g2.drawString(hp, hx, by + BAR_H + 13);
+    }
+
+    // ── Draw: intro text ──────────────────────────────────────────────────────
+
+    private void drawIntroText(Graphics2D g2) {
+        boolean isReady = introState == IntroState.READY;
+        String  text    = isReady ? "Ready..." : "Fight!!";
+        Color   col     = isReady ? new Color(230, 230, 100) : new Color(255, 80, 80);
+
+        g2.setFont(new Font("SansSerif", Font.BOLD, 72));
+        FontMetrics fm = g2.getFontMetrics();
+        int tx = (W - fm.stringWidth(text)) / 2;
+        int ty = H / 2 - 20;
+
+        // Shadow
+        g2.setColor(new Color(0, 0, 0, introAlpha / 2));
+        g2.drawString(text, tx + 3, ty + 3);
+        // Main
+        g2.setColor(new Color(col.getRed(), col.getGreen(), col.getBlue(), introAlpha));
+        g2.drawString(text, tx, ty);
+    }
+
+    // ── Draw: floating text ───────────────────────────────────────────────────
+
+    private void drawFloatingText(Graphics2D g2, FloatingText ft) {
+        if (ft.isMiss) {
+            g2.setFont(new Font("SansSerif", Font.BOLD | Font.ITALIC, 15));
+            g2.setColor(new Color(200, 200, 200, ft.alpha));
+        } else {
+            float size = ft.isCrit ? 20f : 15f;
+            g2.setFont(new Font("SansSerif", Font.BOLD, (int) size));
+            Color c = ft.isHeal       ? new Color(80, 230, 80,  ft.alpha)
+                    : ft.isPassiveDmg ? new Color(80, 150, 255, ft.alpha)
+                    : ft.isCrit       ? new Color(255, 215, 0,  ft.alpha)
+                    :                   new Color(255, 80,  80,  ft.alpha);
+            g2.setColor(c);
+        }
+        FontMetrics fm = g2.getFontMetrics();
+        int tw = fm.stringWidth(ft.text);
+        int dx = ft.leftAnchored ? (int) ft.x : (int) ft.x - tw / 2;
+        // Drop shadow
+        g2.setColor(new Color(0, 0, 0, ft.alpha / 3));
+        g2.drawString(ft.text, dx + 1, (int) ft.y + 1);
+        // Text
+        g2.setColor(ft.isMiss ? new Color(200, 200, 200, ft.alpha)
+                : ft.isHeal       ? new Color(80, 230, 80,  ft.alpha)
+                : ft.isPassiveDmg ? new Color(80, 150, 255, ft.alpha)
+                : ft.isCrit       ? new Color(255, 215, 0,  ft.alpha)
+                :                   new Color(255, 80,  80,  ft.alpha));
+        g2.drawString(ft.text, dx, (int) ft.y);
+    }
+
+    // ── Draw: result overlay ──────────────────────────────────────────────────
+
+    private void drawResultOverlay(Graphics2D g2) {
+        boolean won = battleResult == Battle.BattleState.PLAYER_WIN;
+
+        // Dark veil
+        g2.setColor(new Color(0, 0, 0, overlayAlpha / 2));
+        g2.fillRect(0, 0, W, H);
+
+        int bw = 500, bh = 160;
+        int bx = (W - bw) / 2, by = H / 2 - bh / 2;
+
+        // Banner
+        Color bannerCol = won ? new Color(20, 80, 30, overlayAlpha)
+                : new Color(80, 20, 20, overlayAlpha);
+        g2.setColor(bannerCol);
+        g2.fillRoundRect(bx, by, bw, bh, 20, 20);
+        g2.setColor(new Color(255, 255, 255, Math.min(overlayAlpha + 30, 255)));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(bx, by, bw, bh, 20, 20);
+        g2.setStroke(new BasicStroke(1));
+
+        // Headline
+        String headline = won ? "VICTORY" : "DEFEAT";
+        g2.setFont(new Font("SansSerif", Font.BOLD, 48));
+        FontMetrics fmH = g2.getFontMetrics();
+        int hx = bx + (bw - fmH.stringWidth(headline)) / 2;
+        int hy = by + bh / 2 + 4;
+        g2.setColor(new Color(0, 0, 0, overlayAlpha));
+        g2.drawString(headline, hx + 3, hy + 3);
+        Color headCol = won ? new Color(150, 255, 130, overlayAlpha)
+                : new Color(255, 110, 90,  overlayAlpha);
+        g2.setColor(headCol);
+        g2.drawString(headline, hx, hy);
+
+        // Subtitle
+        String winner = won ? battle.getPlayer().getName() : battle.getEnemy().getName();
+        String loser  = won ? battle.getEnemy().getName()  : battle.getPlayer().getName();
+        String sub = winner + " defeated " + loser + "!";
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        FontMetrics fmS = g2.getFontMetrics();
+        g2.setColor(new Color(210, 210, 210, overlayAlpha));
+        g2.drawString(sub, bx + (bw - fmS.stringWidth(sub)) / 2, hy + fmH.getHeight() - 8);
     }
 }
