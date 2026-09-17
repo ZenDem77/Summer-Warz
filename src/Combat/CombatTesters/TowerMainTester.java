@@ -4,13 +4,8 @@ import Combat.NormalBattle.Battle;
 import Economy.Wallet;
 import Entities.Artifacts.Artifact;
 import Entities.Character;
-import Entities.Characters.Xyniz;
-import Entities.Characters.Kindle;
-import Entities.Characters.Zayir;
-import Entities.Characters.Zenzenkoi;
-import Entities.Weapons.Saber;
-import Entities.Weapons.Weapon;
-import Entities.Weapons.Sword;
+import Entities.Characters.*;
+import Entities.Weapons.*;
 import GameMain.GamePanel;
 import GameModes.TowerOfSuffering.Floor;
 import GameModes.TowerOfSuffering.FloorMode;
@@ -30,14 +25,17 @@ public class TowerMainTester {
             Xyniz xyniz = new Xyniz();
             Zayir zayir = new Zayir();
             Zenzenkoi zenzenkoi = new Zenzenkoi();
-            List<Character> team = List.of(xyniz, zayir, kindle, zenzenkoi);
+            Kouzen kouzen = new Kouzen();
+            List<Character> team = List.of(kouzen, xyniz, zayir, kindle);
 
             // ── Weapons ───────────────────────────────────────────────────────
+            Weapon staff = new Staff();
             Weapon weaponZe = new Sword();
             Weapon weaponZ = new Saber();
             Weapon weaponK = new Saber();
             Weapon weapon  = new Sword();
 
+            staff.equip(kouzen); staff.setWeaponLevel(20);
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
             weaponZ.equip(kindle); weaponZ.setWeaponLevel(10);
             weaponK.equip(xyniz); weaponK.setWeaponLevel(10);
@@ -54,10 +52,10 @@ public class TowerMainTester {
             Artifact b3 = Artifact.generateRandom();
             Artifact b4 = Artifact.generateRandom();
 
-            zenzenkoi.equipArtifact(0, a1);
-            zenzenkoi.equipArtifact(1, a2);
-            zenzenkoi.equipArtifact(2, a3);
-            zenzenkoi.equipArtifact(3, a4);
+            kouzen.equipArtifact(0, a1);
+            kouzen.equipArtifact(1, a2);
+            kouzen.equipArtifact(2, a3);
+            kouzen.equipArtifact(3, a4);
 
             kindle.equipArtifact(0, b1);
             kindle.equipArtifact(1, b2);
