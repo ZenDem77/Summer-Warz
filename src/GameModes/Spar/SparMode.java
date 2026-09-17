@@ -17,7 +17,7 @@ import java.util.List;
  *
  * ── How to connect to UI later ─────────────────────────────────────────────
  *
- *  1. Construct:   SparMode mode = new SparMode(zed, kaizen);
+ *  1. Construct:   SparMode mode = new SparMode(zed, xyniz);
  *  2. Subscribe:   mode.addListener(yourSparModeListener);
  *  3. Start:       CharacterBattle battle = mode.startSpar();
  *  4. Wire battle: battle.addListener(yourBattleListener);

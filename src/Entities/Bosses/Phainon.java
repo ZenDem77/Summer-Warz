@@ -2,6 +2,7 @@ package Entities.Bosses;
 
 import Entities.Enemy;
 import Entities.PassiveHandler.*;
+import Entities.Sprites.*;
 
 public class Phainon extends Enemy {
 
@@ -34,5 +35,16 @@ public class Phainon extends Enemy {
                         "+" + healed + " HP restored", healed, true);
             }
         };
+    }
+
+    // ── Sprite ────────────────────────────────────────────────────────────────
+    @Override
+    public SpriteSet getSpriteSet() {
+        return new SpriteSet(
+                SpritePaths.PHAINON_IDLE,
+                SpritePaths.PHAINON_RUN,
+                SpritePaths.PHAINON_ATTACK,
+                SpritePaths.PHAINON_DEAD
+        );
     }
 }

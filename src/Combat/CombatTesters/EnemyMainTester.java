@@ -25,10 +25,10 @@ public class EnemyMainTester {
             //  PLAYER TEAM (1–4 characters, no duplicates)
             // ═══════════════════════════════════════════════════════════════════
             Kindle kindle = new Kindle();
-            Kaizen kaizen = new Kaizen();
+            Xyniz xyniz = new Xyniz();
             Zayir zayir = new Zayir();
             Zenzenkoi zenzenkoi = new Zenzenkoi();
-            List<Character> team = List.of(kindle, zenzenkoi, zayir, kaizen);
+            List<Character> team = List.of(kindle, zenzenkoi, zayir, xyniz);
 
             Weapon weaponZe = new IronEdge();
             Weapon weaponZ = new IronEdge();
@@ -37,7 +37,7 @@ public class EnemyMainTester {
 
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
             weaponZ.equip(kindle); weaponZ.setWeaponLevel(20);
-            weaponK.equip(kaizen); weaponK.setWeaponLevel(20);
+            weaponK.equip(xyniz); weaponK.setWeaponLevel(20);
             weapon.equip(zayir); weapon.setWeaponLevel(20);
 
             Artifact a1 = Artifact.generateRandom();

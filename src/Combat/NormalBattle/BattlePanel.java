@@ -11,6 +11,9 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 
+import Combat.BattleUI;
+import Combat.BattleUI.FloatingText;
+
 /**
  * BattlePanel — full-screen battle view.
  *
@@ -128,27 +131,9 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     private Entity displayedEnemy;
 
     // ── Floating text ─────────────────────────────────────────────────────────
+    // FloatingText itself is shared (see Combat.BattleUI.FloatingText, imported
+    // above) so every panel's damage/heal/miss popups look and animate identically.
     private final java.util.List<FloatingText> floatingTexts = new java.util.ArrayList<>();
-
-    private static class FloatingText {
-        static final int DURATION_MS = 700;
-        static final int RISE_PX     = 40;
-        String text; float x, y; int alpha = 255;
-        boolean isCrit, isHeal, isPassiveDmg, isMiss, leftAnchored;
-        int ticksLeft; float dy; int dAlpha;
-
-        FloatingText(String text, float x, float y,
-                     boolean isCrit, boolean isHeal, boolean isPassiveDmg,
-                     boolean isMiss, boolean leftAnchored) {
-            this.text = text; this.x = x; this.y = y;
-            this.isCrit = isCrit; this.isHeal = isHeal;
-            this.isPassiveDmg = isPassiveDmg; this.isMiss = isMiss;
-            this.leftAnchored = leftAnchored;
-            int total = DURATION_MS / TICK_MS;
-            ticksLeft = total; dy = (float) RISE_PX / total; dAlpha = 255 / total;
-        }
-        boolean tick() { y -= dy; alpha -= dAlpha; ticksLeft--; return alpha > 0 && ticksLeft > 0; }
-    }
 
     // ── Result overlay ────────────────────────────────────────────────────────
     private Battle.BattleState battleResult = null;
@@ -158,9 +143,11 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     // ── Sprite cache ──────────────────────────────────────────────────────────
     // One placeholder sprite per entity instance (color differs player vs enemy)
     private final Map<Entity, BufferedImage> spriteCache = new HashMap<>();
-    private final Map<Entity, BufferedImage> runSpriteCache = new HashMap<>();
-    private final Map<Entity, BufferedImage> attackSpriteCache = new HashMap<>();
-    private final Map<Entity, BufferedImage> deadSpriteCache = new HashMap<>();
+    private final Map<Entity, BufferedImage> runSpriteCache        = new HashMap<>();
+    private final Map<Entity, BufferedImage> attackSpriteCache     = new HashMap<>();
+    private final Map<Entity, BufferedImage> deadSpriteCache       = new HashMap<>();
+    private final Map<Entity, BufferedImage> projectileSpriteCache = new HashMap<>();
+    private final java.util.List<BattleUI.ProjectileSprite> projectiles = new java.util.ArrayList<>();
     private final BufferedImage bgImage;
 
     // ── Pending next-fighter state ────────────────────────────────────────────
@@ -214,6 +201,16 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
             BufferedImage attack = SpriteLoader.load(e.getSpriteSet().attackPath(), spriteWidthFor(e), spriteHeightFor(e));
             if (attack != null) attackSpriteCache.put(e, attack);
         });
+        // Projectile sprites — loaded at native size (no padding into sprite box
+        // since projectiles aren't anchored to the ground like character sprites)
+        battle.getPlayerTeam().forEach(c -> {
+            BufferedImage proj = SpriteLoader.loadNative(c.getSpriteSet().projectilePath());
+            if (proj != null) projectileSpriteCache.put(c, proj);
+        });
+        battle.getEnemyTeam().forEach(e -> {
+            BufferedImage proj = SpriteLoader.loadNative(e.getSpriteSet().projectilePath());
+            if (proj != null) projectileSpriteCache.put(e, proj);
+        });
 
         renderTimer = new javax.swing.Timer(TICK_MS, e -> tick());
         renderTimer.start();
@@ -233,7 +230,8 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         if (playerAttacking && ++playerAttackTick > ATTACK_POSE_MS / TICK_MS) { playerAttacking = false; playerAttackTick = 0; }
         if (enemyAttacking  && ++enemyAttackTick > ATTACK_POSE_MS / TICK_MS)  { enemyAttacking  = false; enemyAttackTick  = 0; }
 
-        floatingTexts.removeIf(ft -> !ft.tick());
+        BattleUI.updateFloatingTexts(floatingTexts);
+        BattleUI.updateProjectiles(projectiles);
         repaint();
     }
 
@@ -358,6 +356,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     public void onPlayerAttack(String log, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
             playerAttacking = true; playerAttackTick = 0;
+            launchProjectile(true);
             if (isMiss) spawnMissPopup(false);
             else { enemyFlashing = true; enemyFlashTick = 0; showDmgPopup(false, damage, isCrit); }
         });
@@ -367,6 +366,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     public void onEnemyAttack(String log, int damage, boolean isCrit, boolean isMiss) {
         SwingUtilities.invokeLater(() -> {
             enemyAttacking = true; enemyAttackTick = 0;
+            launchProjectile(false);
             if (isMiss) spawnMissPopup(true);
             else { playerFlashing = true; playerFlashTick = 0; showDmgPopup(true, damage, isCrit); }
         });
@@ -435,21 +435,42 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     // ── Popup helpers ─────────────────────────────────────────────────────────
+    // All three delegate to BattleUI so popup appearance/positioning logic
+    // lives in exactly one place across every battle panel.
+
+    /**
+     * Launches a projectile from the attacker toward the defender if this
+     * entity has a projectile sprite loaded. The projectile travels at the
+     * default speed defined in BattleUI.ProjectileSprite.
+     *
+     * @param attackerIsPlayer true = player fired, false = enemy fired
+     */
+    private void launchProjectile(boolean attackerIsPlayer) {
+        Entity attacker = attackerIsPlayer ? getDisplayedPlayer() : getDisplayedEnemy();
+        BufferedImage proj = projectileSpriteCache.get(attacker);
+        if (proj == null) return;   // this entity has no projectile sprite
+
+        double startX  = attackerIsPlayer ? playerWorldX : enemyWorldX;
+        double targetX = attackerIsPlayer ? enemyWorldX  : playerWorldX;
+        // Offset the launch point to roughly the attacker's hand/center rather
+        // than their body origin, and aim for the target's center
+        int attackerW  = spriteWidthFor(attacker);
+        Entity defender = attackerIsPlayer ? getDisplayedEnemy() : getDisplayedPlayer();
+        int defenderW   = spriteWidthFor(defender);
+        double launchX  = startX  + (attackerIsPlayer ?  attackerW / 2.0 : -attackerW / 2.0);
+        double arriveX  = targetX + (attackerIsPlayer ? -defenderW / 2.0 :  defenderW / 2.0);
+        double midY     = (PLAYER_WORLD_Y + ENEMY_WORLD_Y) / 2.0;
+
+        projectiles.add(new BattleUI.ProjectileSprite(proj, launchX, arriveX, midY,
+                BattleUI.ProjectileSprite.DEFAULT_SPEED_PX_PER_TICK));
+    }
 
     private void showDmgPopup(boolean onPlayer, int dmg, boolean isCrit) {
         Entity entity = onPlayer ? getDisplayedPlayer() : getDisplayedEnemy();
         int spriteW = spriteWidthFor(entity);
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX,
                 onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y, spriteW, spriteHeightFor(entity));
-        if (dmg <= 0) {
-            // Shield absorbed the entire hit — show BLOCK in blue
-            floatingTexts.add(new FloatingText("BLOCK", sp.x + spriteW / 2f, sp.y - 10,
-                    false, false, true, false, false));
-            return;
-        }
-        String txt = "-" + dmg + (isCrit ? "!" : "");
-        floatingTexts.add(new FloatingText(txt, sp.x + spriteW / 2f, sp.y - 10,
-                isCrit, false, false, false, false));
+        BattleUI.spawnDamagePopup(floatingTexts, sp.x, sp.y, spriteW, dmg, isCrit, TICK_MS);
     }
 
     private void spawnMissPopup(boolean onPlayer) {
@@ -457,8 +478,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         int spriteW = spriteWidthFor(entity);
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX,
                 onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y, spriteW, spriteHeightFor(entity));
-        floatingTexts.add(new FloatingText("MISS!", sp.x + spriteW / 2f, sp.y - 10,
-                false, false, false, true, false));
+        BattleUI.spawnMissPopup(floatingTexts, sp.x, sp.y, spriteW, TICK_MS);
     }
 
     private void spawnPassivePopup(boolean onPlayer, int amount, boolean isHeal) {
@@ -467,18 +487,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         int spriteH = spriteHeightFor(entity);
         Point sp = spritePos(onPlayer ? playerWorldX : enemyWorldX,
                 onPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y, spriteW, spriteH);
-        String txt = (isHeal ? "+" : "-") + amount;
-        boolean leftAnchored; float sx, sy;
-        if (isHeal) {
-            leftAnchored = !onPlayer;
-            sx = onPlayer ? sp.x - 8 : sp.x + spriteW + 8;
-            sy = sp.y + spriteH / 2f;
-        } else {
-            leftAnchored = false;
-            sx = sp.x + spriteW / 2f;
-            sy = sp.y - 10;
-        }
-        floatingTexts.add(new FloatingText(txt, sx, sy, false, isHeal, !isHeal, false, leftAnchored));
+        BattleUI.spawnPassivePopup(floatingTexts, sp.x, sp.y, spriteW, spriteH, onPlayer, amount, isHeal, TICK_MS);
     }
 
     // ── Projection ────────────────────────────────────────────────────────────
@@ -493,9 +502,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
 
     /** Bottom-center anchor position for a sprite of the given size at this world position. */
     private Point spritePos(double worldX, double worldY, int spriteW, int spriteH) {
-        return new Point(
-                (int)(W / 2.0 + worldX) - spriteW / 2,
-                (int)(GROUND_BASE - worldY * ISO_SCALE) - spriteH);
+        return BattleUI.spritePos(W, GROUND_BASE, ISO_SCALE, worldX, worldY, spriteW, spriteH);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -526,11 +533,14 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
                 getCurrentSprite(displayEnemy, enemyAttacking, isEnemyMoving()),
                 enemyFlashing ? ENEMY_FLASH : null, true);
 
+        // Projectiles drawn after sprites so they appear in front of fighters
+        BattleUI.drawProjectiles(g2, projectiles, W, GROUND_BASE, ISO_SCALE);
+
         drawHud(g2);
         drawPlayerRoster(g2);
         drawEnemyCount(g2);
 
-        for (FloatingText ft : floatingTexts) drawFloatingText(g2, ft);
+        for (FloatingText ft : floatingTexts) BattleUI.drawFloatingText(g2, ft);
 
         if (introState != IntroState.DONE) drawIntroText(g2);
         if (battleResult != null)          drawResultOverlay(g2);
@@ -601,64 +611,17 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         g2.setColor(HUD_BG);
         g2.fillRect(0, 0, W, HUD_H);
 
-        // Active fighter HP bars
-        drawHudEntry(g2, battle.getActivePlayer(), BAR_MARGIN, false);
-        drawHudEntry(g2, battle.getActiveEnemy(),  W - BAR_MARGIN - BAR_W, true);
+        // Use the same frozen display references as the sprite (see
+        // getDisplayedPlayer/getDisplayedEnemy) so the HP bar stays on the
+        // fighter that just died until the next one actually slides in.
+        drawHudEntry(g2, getDisplayedPlayer(), BAR_MARGIN, false);
+        drawHudEntry(g2, getDisplayedEnemy(),  W - BAR_MARGIN - BAR_W, true);
 
     }
 
     private void drawHudEntry(Graphics2D g2, Entity entity, int barX, boolean rightAlign) {
-        int barY = 12;
-        g2.setFont(new Font("SansSerif", Font.BOLD, 13));
-        FontMetrics fm = g2.getFontMetrics();
-        String name = entity.getName();
-        int nx = rightAlign ? barX + BAR_W - fm.stringWidth(name) : barX;
-        g2.setColor(Color.WHITE);
-        g2.drawString(name, nx, barY + 11);
-
-        int by = barY + 16;
-        g2.setColor(BAR_EMPTY);
-        g2.fillRoundRect(barX, by, BAR_W, BAR_H, BAR_H, BAR_H);
-        double pct = entity.getHpPercent();
-        int fillW = Math.max(0, (int)(BAR_W * pct));
-        Color barCol = pct > 0.5 ? BAR_GREEN : pct > 0.25 ? BAR_YELLOW : BAR_RED;
-        if (fillW > 0) {
-            g2.setColor(barCol);
-            g2.fillRoundRect(barX, by, fillW, BAR_H, BAR_H, BAR_H);
-            g2.setColor(new Color(255, 255, 255, 50));
-            g2.fillRoundRect(barX, by, fillW, BAR_H / 2, BAR_H, BAR_H);
-        }
-        g2.setColor(new Color(0, 0, 0, 120));
-        g2.setStroke(new BasicStroke(1.5f));
-        g2.drawRoundRect(barX, by, BAR_W, BAR_H, BAR_H, BAR_H);
-        g2.setStroke(new BasicStroke(1));
-
-        g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-        fm = g2.getFontMetrics();
-        String hp = entity.getCurrentHp() + " / " + entity.getMaxHp();
-        int hx = rightAlign ? barX + BAR_W - fm.stringWidth(hp) : barX;
-        g2.setColor(new Color(220, 220, 220));
-        g2.drawString(hp, hx, by + BAR_H + 13);
-
-        // ── Shield bar + text (only when shield is active) ──────────────────
-        if (entity instanceof Shielded s && s.getShieldHp() > 0) {
-            // Blue overlay on HP bar proportional to shield / maxHp
-            double shieldPct = Math.min(1.0, (double) s.getShieldHp() / entity.getMaxHp());
-            int shieldW = Math.max(4, (int)(BAR_W * shieldPct));
-            g2.setColor(new Color(80, 130, 255, 150));
-            g2.fillRoundRect(barX, by, shieldW, BAR_H, BAR_H, BAR_H);
-            // Gloss on shield bar
-            g2.setColor(new Color(160, 190, 255, 60));
-            g2.fillRoundRect(barX, by, shieldW, BAR_H / 2, BAR_H, BAR_H);
-
-            // Shield text below HP numbers
-            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-            fm = g2.getFontMetrics();
-            String shieldStr = "Shield: " + s.getShieldHp();
-            int shx = rightAlign ? barX + BAR_W - fm.stringWidth(shieldStr) : barX;
-            g2.setColor(new Color(130, 170, 255));
-            g2.drawString(shieldStr, shx, by + BAR_H + 26);
-        }
+        BattleUI.drawHpBar(g2, entity, barX, 12, BAR_W, BAR_H, rightAlign,
+                new BattleUI.HpBarColors(BAR_GREEN, BAR_YELLOW, BAR_RED, BAR_EMPTY));
     }
 
     /**
@@ -760,25 +723,6 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         g2.drawString(text, tx, ty);
     }
 
-    // ── Draw: floating text ───────────────────────────────────────────────────
-
-    private void drawFloatingText(Graphics2D g2, FloatingText ft) {
-        g2.setFont(new Font("SansSerif", ft.isMiss ? Font.BOLD | Font.ITALIC : Font.BOLD,
-                ft.isCrit ? 20 : 15));
-        FontMetrics fm = g2.getFontMetrics();
-        int tw = fm.stringWidth(ft.text);
-        int dx = ft.leftAnchored ? (int) ft.x : (int) ft.x - tw / 2;
-        g2.setColor(new Color(0, 0, 0, ft.alpha / 3));
-        g2.drawString(ft.text, dx + 1, (int) ft.y + 1);
-        Color c = ft.isMiss       ? new Color(200, 200, 200, ft.alpha)
-                : ft.isHeal       ? new Color(80,  230, 80,  ft.alpha)
-                : ft.isPassiveDmg ? new Color(80,  150, 255, ft.alpha)
-                : ft.isCrit       ? new Color(255, 215, 0,   ft.alpha)
-                :                   new Color(255, 80,  80,  ft.alpha);
-        g2.setColor(c);
-        g2.drawString(ft.text, dx, (int) ft.y);
-    }
-
     // ── Draw: result overlay ──────────────────────────────────────────────────
 
     private void drawResultOverlay(Graphics2D g2) {
@@ -793,16 +737,6 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         } else {
             drawDefeatOverlay(g2);
         }
-    }
-
-    /** Returns "1st", "2nd", "3rd", "4th", etc. */
-    private static String ordinal(int rank) {
-        return switch (rank) {
-            case 1 -> "1st";
-            case 2 -> "2nd";
-            case 3 -> "3rd";
-            default -> rank + "th";
-        };
     }
 
     private void drawVictoryOverlay(Graphics2D g2) {
@@ -857,7 +791,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
             String pctFmt = (pct % 1.0 == 0.0)
                     ? String.valueOf((int) pct)
                     : String.format("%.1f", pct);
-            String rank   = ordinal(i + 1);
+            String rank   = BattleUI.ordinal(i + 1);
             String name   = entry.getKey().getName();
             String dmgStr = dmg + " damage";
             String pctStr = "(" + pctFmt + "%)";
@@ -998,23 +932,7 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     private BufferedImage loadSpriteOrPlaceholder(Entity entity, Color placeholderColor) {
         int w = spriteWidthFor(entity), h = spriteHeightFor(entity);
         BufferedImage loaded = SpriteLoader.load(entity.getSpriteSet().idlePath(), w, h);
-        return loaded != null ? loaded : makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1), w, h);
-    }
-
-    private BufferedImage makePlaceholderSprite(Color base, String initial, int spriteW, int spriteH) {
-        BufferedImage img = new BufferedImage(spriteW, spriteH, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = img.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        int[] xs = { 4, spriteW - 4, spriteW - 10, 10 };
-        int[] ys = { 0, 0, spriteH, spriteH };
-        g.setColor(base); g.fillPolygon(xs, ys, 4);
-        g.setColor(base.darker()); g.setStroke(new BasicStroke(2)); g.drawPolygon(xs, ys, 4);
-        g.setFont(new Font("SansSerif", Font.BOLD, Math.max(12, spriteW / 3)));
-        g.setColor(new Color(255, 255, 255, 200));
-        FontMetrics fm = g.getFontMetrics();
-        g.drawString(initial, (spriteW - fm.stringWidth(initial)) / 2, spriteH / 2 + fm.getAscent() / 2 - 4);
-        g.dispose();
-        return img;
+        return loaded != null ? loaded : BattleUI.makePlaceholderSprite(placeholderColor, entity.getName().substring(0, 1), w, h);
     }
 
     private BufferedImage makePlaceholderBg() {

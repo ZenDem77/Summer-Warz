@@ -4,7 +4,7 @@ import Combat.NormalBattle.Battle;
 import Economy.Wallet;
 import Entities.Artifacts.Artifact;
 import Entities.Character;
-import Entities.Characters.Kaizen;
+import Entities.Characters.Xyniz;
 import Entities.Characters.Kindle;
 import Entities.Characters.Zayir;
 import Entities.Characters.Zenzenkoi;
@@ -27,10 +27,10 @@ public class TowerMainTester {
 
             // ── Build player team ─────────────────────────────────────────────
             Kindle kindle = new Kindle();
-            Kaizen kaizen = new Kaizen();
+            Xyniz xyniz = new Xyniz();
             Zayir zayir = new Zayir();
             Zenzenkoi zenzenkoi = new Zenzenkoi();
-            List<Character> team = List.of(kindle, zenzenkoi, zayir, kaizen);
+            List<Character> team = List.of(xyniz, zayir, kindle, zenzenkoi);
 
             // ── Weapons ───────────────────────────────────────────────────────
             Weapon weaponZe = new WolvesGravestone();
@@ -40,7 +40,7 @@ public class TowerMainTester {
 
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
             weaponZ.equip(kindle); weaponZ.setWeaponLevel(10);
-            weaponK.equip(kaizen); weaponK.setWeaponLevel(10);
+            weaponK.equip(xyniz); weaponK.setWeaponLevel(10);
             weapon.equip(zayir); weapon.setWeaponLevel(10);
 
             // ── Artifacts ─────────────────────────────────────────────────────

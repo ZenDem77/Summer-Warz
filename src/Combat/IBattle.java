@@ -28,4 +28,8 @@ public interface IBattle {
     void notifyPassiveMiss(Entity owner, Entity target, String passiveName);
 
     default double getDamageMultiplier() { return 1.0; }
+
+    default void registerPausableTimer(javax.swing.Timer timer) {}
+
+    default void unregisterPausableTimer(javax.swing.Timer timer) {}
 }
