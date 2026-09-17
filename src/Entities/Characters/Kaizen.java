@@ -1,10 +1,9 @@
 package Entities.Characters;
 
-import Combat.IBattle;
 import Entities.Entity;
 import Entities.Character;
-import Entities.Passive;
-import Entities.PassiveContext;
+import Entities.PassiveHandler.Passive;
+import Entities.PassiveHandler.PassiveContext;
 
 public class Kaizen extends Character {
 

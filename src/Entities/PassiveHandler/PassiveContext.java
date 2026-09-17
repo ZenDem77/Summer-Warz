@@ -1,6 +1,7 @@
-package Entities;
+package Entities.PassiveHandler;
 
 import Combat.IBattle;
+import Entities.Entity;
 
 public class PassiveContext {
     public final Entity owner;

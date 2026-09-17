@@ -4,6 +4,10 @@ import Combat.DamageResult;
 import Combat.IBattle;
 import Entities.*;
 import Entities.Character;
+import Entities.PassiveHandler.Passive;
+import Entities.PassiveHandler.PassiveContext;
+import Entities.PassiveHandler.PassiveEvent;
+import Entities.PassiveHandler.Shielded;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -140,6 +144,33 @@ public class Battle implements IBattle {
     /** Stop all passive timers (called on battle end or reset). */
     public void stop() {
         stopPassiveTimers();
+    }
+
+    /**
+     * Suspends all passive tick timers without changing battle state.
+     * Call when showing the info overlay or any other pause screen.
+     */
+    public void pause() {
+        passiveTimers.forEach(javax.swing.Timer::stop);
+    }
+
+    /**
+     * Resumes passive tick timers after a pause.
+     * Only works while the battle is ONGOING.
+     */
+    public void resume() {
+        if (state != BattleState.ONGOING) return;
+        passiveTimers.forEach(javax.swing.Timer::start);
+    }
+
+    /** Temporarily suspend passive timers without clearing them (used by pause). */
+    public void pausePassiveTimers() {
+        passiveTimers.forEach(javax.swing.Timer::stop);
+    }
+
+    /** Resume suspended passive timers after a pause. */
+    public void resumePassiveTimers() {
+        passiveTimers.forEach(javax.swing.Timer::start);
     }
 
     // ── Attack ticks ──────────────────────────────────────────────────────────
@@ -311,6 +342,17 @@ public class Battle implements IBattle {
     }
 
     // ── IBattle notifications ─────────────────────────────────────────────────
+
+    @Override
+    public void notifyShield(Entity owner, String passiveName, int amount) {
+        // Build log with current shield total if available
+        String total = (owner instanceof Shielded s)
+                ? " (total: " + s.getShieldHp() + ")" : "";
+        String log = "[" + passiveName + "] " + owner.getName()
+                + " — +" + amount + " shield" + total;
+        // isHeal=true for green popup; does NOT touch enemyHpPool
+        for (BattleListener l : listeners) l.onPassive(log, owner, amount, true);
+    }
 
     @Override
     public void notifyPassive(Entity owner, Entity target, String passiveName,

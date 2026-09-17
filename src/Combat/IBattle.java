@@ -1,7 +1,7 @@
 package Combat;
 
 import Entities.Entity;
-import Entities.PassiveEvent;
+import Entities.PassiveHandler.PassiveEvent;
 
 public interface IBattle {
 
@@ -22,4 +22,6 @@ public interface IBattle {
                        String effectDesc, int amount, boolean isHeal);
 
     void checkEndPublic();
+
+    void notifyShield(Entity owner, String passiveName, int amount);
 }
