@@ -1,14 +1,15 @@
 package Entities.Enemies;
 
+import Combat.IBattle;
 import Entities.Entity;
 import Entities.Enemy;
-import Combat.NormalBattle.Battle;
 import Entities.Passive;
+import Entities.PassiveContext;
 
 public class Phainon extends Enemy {
 
-    private static final int PASSIVE_HEAL_AMOUNT  = 20;
-    private static final int PASSIVE_INTERVAL_MS  = 7000;
+    private static final int PASSIVE_HEAL_AMOUNT = 20;
+    private static final int PASSIVE_INTERVAL_MS = 7000;
 
     private static final String[] TAUNTS = {
             "New sun, tear the sky!",
@@ -18,7 +19,7 @@ public class Phainon extends Enemy {
     };
 
     public Phainon() {
-        super("Phainon", 300, 15, 3, 1200, 0.05, 1.50, "Fire Ronin", 15, 30);
+        super("Phainon", 300, 15, 3, 1200, 0.05, 0.50, "Fire Ronin", 15, 30);
     }
 
     @Override
@@ -29,16 +30,16 @@ public class Phainon extends Enemy {
     @Override
     public Passive getPassive() {
         return new Passive() {
-            @Override public int    getIntervalMs() { return PASSIVE_INTERVAL_MS; }
-            @Override public String getName()       { return "Ember Mend"; }
+            @Override public String getName()        { return "Ember Mend"; }
             @Override public String getDescription() { return "Recover " + PASSIVE_HEAL_AMOUNT + " HP every 7s"; }
+            @Override public int    getIntervalMs()  { return PASSIVE_INTERVAL_MS; }
 
             @Override
-            public void trigger(Entity owner, Battle battle) {
-                int before = owner.getCurrentHp();
-                owner.heal(PASSIVE_HEAL_AMOUNT);
-                int healed = owner.getCurrentHp() - before;
-                battle.notifyPassive(owner, owner, getName(),
+            public void trigger(PassiveContext ctx) {
+                int before = ctx.owner.getCurrentHp();
+                ctx.owner.heal(PASSIVE_HEAL_AMOUNT);
+                int healed = ctx.owner.getCurrentHp() - before;
+                ctx.battle.notifyPassive(ctx.owner, ctx.owner, getName(),
                         "+" + healed + " HP restored", healed, true);
             }
         };

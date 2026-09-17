@@ -33,7 +33,7 @@ public abstract class Entity {
             return new DamageResult(0, false, true);   // miss
         }
         boolean crit = Math.random() < critRate;
-        double  raw  = crit ? attack * critDamage : attack;
+        double  raw  = crit ? attack + (attack * critDamage) : attack;
         int     dmg  = Math.max(0, (int) raw - defender.getDefense());
         return new DamageResult(dmg, crit, false);
     }

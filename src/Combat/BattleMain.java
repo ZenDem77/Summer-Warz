@@ -1,7 +1,7 @@
 package Combat;
 
-import Combat.NormalBattle.Battle;
-import Combat.NormalBattle.BattlePanel;
+import Combat.CharacterBattle.*;
+import Combat.NormalBattle.*;
 import Entities.Character;
 import Entities.Characters.*;
 import Entities.Enemies.*;
@@ -15,11 +15,11 @@ public class BattleMain {
         SwingUtilities.invokeLater(() -> {
             GamePanel window = new GamePanel();
 
-            Character testCharacter = new Zed();
+            // Character vs Enemy test battle
+            Battle battle  = new Battle(new Zed(), new Phainon()); window.showPanel(new BattlePanel(battle));
 
-            Battle battle  = new Battle(testCharacter, new Phainon());
-
-            window.showPanel(new BattlePanel(battle));
+            // Character vs Character test battle
+            //CharacterBattle battle = new CharacterBattle(new Kaizen(), new Zed()); window.showPanel(new CharacterBattlePanel(battle));
         });
     }
 }

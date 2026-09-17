@@ -1,4 +1,4 @@
-package Combat.NormalBattle;
+package Combat.CharacterBattle;
 
 import Combat.DamageResult;
 import Combat.IBattle;
@@ -10,40 +10,37 @@ import Entities.PassiveEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Battle implements IBattle {
+public class CharacterBattle implements IBattle {
 
-    public enum BattleState { IDLE, APPROACHING, ONGOING, PLAYER_WIN, ENEMY_WIN }
+    public enum BattleState { IDLE, APPROACHING, ONGOING, FIGHTER1_WIN, FIGHTER2_WIN }
 
     public interface BattleListener {
-        void onPlayerAttack(String logEntry, int damage, boolean isCrit, boolean isMiss);
-        void onEnemyAttack(String logEntry, int damage, boolean isCrit, boolean isMiss);
+        void onFighter1Attack(String logEntry, int damage, boolean isCrit, boolean isMiss);
+        void onFighter2Attack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onPassive(String logEntry, Entity owner, int amount, boolean isHeal);
         void onBattleEnd(BattleState result);
     }
 
-    private final Entity player;
-    private final Entity enemy;
+    private final Character fighter1;
+    private final Character fighter2;
     private BattleState state = BattleState.IDLE;
 
     private final List<BattleListener> listeners = new ArrayList<>();
 
-    // All active passive instances, indexed for event dispatch
-    private final List<Passive> playerPassives = new ArrayList<>();
-    private final List<Passive> enemyPassives  = new ArrayList<>();
-
-    // Periodic timers (only for passives with TICK)
+    private final List<Passive> f1Passives = new ArrayList<>();
+    private final List<Passive> f2Passives = new ArrayList<>();
     private final List<javax.swing.Timer> passiveTimers = new ArrayList<>();
 
-    public Battle(Entity player, Entity enemy) {
-        this.player = player;
-        this.enemy  = enemy;
+    public CharacterBattle(Character fighter1, Character fighter2) {
+        this.fighter1 = fighter1;
+        this.fighter2 = fighter2;
     }
 
     public void addListener(BattleListener l) { listeners.add(l); }
 
     public void start() {
-        player.reset();
-        enemy.reset();
+        fighter1.reset();
+        fighter2.reset();
         state = BattleState.APPROACHING;
     }
 
@@ -62,60 +59,52 @@ public class Battle implements IBattle {
 
     // ── Attack ticks ──────────────────────────────────────────────────────────
 
-    public void playerTick() {
+    public void fighter1Tick() {
         if (state != BattleState.ONGOING) return;
-        DamageResult result = player.calculateDamage(enemy);
+        DamageResult result = fighter1.calculateDamage(fighter2);
         if (result.isMiss) {
-            String log = player.getName() + "'s attack missed!";
-            for (BattleListener l : listeners) l.onPlayerAttack(log, 0, false, true);
+            String log = fighter1.getName() + "'s attack missed!";
+            for (BattleListener l : listeners) l.onFighter1Attack(log, 0, false, true);
             return;
         }
-        // Let enemy's ON_TAKE_DAMAGE passives intercept
-        int dmg = applyPassiveEvent(enemy, player, PassiveEvent.ON_TAKE_DAMAGE, result.amount);
-        // Let player's ON_DEAL_DAMAGE passives react (lifesteal etc.)
-        applyPassiveEvent(player, enemy, PassiveEvent.ON_DEAL_DAMAGE, dmg);
+        int dmg = applyPassiveEvent(fighter2, fighter1, PassiveEvent.ON_TAKE_DAMAGE, result.amount);
+        applyPassiveEvent(fighter1, fighter2, PassiveEvent.ON_DEAL_DAMAGE, dmg);
 
-        enemy.takeDamage(dmg);
+        fighter2.takeDamage(dmg);
         String log = (result.isCrit ? "★ CRIT! " : "")
-                + player.getName() + " hits " + enemy.getName()
+                + fighter1.getName() + " hits " + fighter2.getName()
                 + " for " + dmg + " dmg! ("
-                + enemy.getCurrentHp() + "/" + enemy.getMaxHp() + " HP)";
-        for (BattleListener l : listeners) l.onPlayerAttack(log, dmg, result.isCrit, false);
+                + fighter2.getCurrentHp() + "/" + fighter2.getMaxHp() + " HP)";
+        for (BattleListener l : listeners) l.onFighter1Attack(log, dmg, result.isCrit, false);
         checkEnd();
     }
 
-    public void enemyTick() {
+    public void fighter2Tick() {
         if (state != BattleState.ONGOING) return;
-        DamageResult result = enemy.calculateDamage(player);
+        DamageResult result = fighter2.calculateDamage(fighter1);
         if (result.isMiss) {
-            String log = enemy.getName() + "'s attack missed!";
-            for (BattleListener l : listeners) l.onEnemyAttack(log, 0, false, true);
+            String log = fighter2.getName() + "'s attack missed!";
+            for (BattleListener l : listeners) l.onFighter2Attack(log, 0, false, true);
             return;
         }
-        // Let player's ON_TAKE_DAMAGE passives intercept
-        int dmg = applyPassiveEvent(player, enemy, PassiveEvent.ON_TAKE_DAMAGE, result.amount);
-        // Let enemy's ON_DEAL_DAMAGE passives react
-        applyPassiveEvent(enemy, player, PassiveEvent.ON_DEAL_DAMAGE, dmg);
+        int dmg = applyPassiveEvent(fighter1, fighter2, PassiveEvent.ON_TAKE_DAMAGE, result.amount);
+        applyPassiveEvent(fighter2, fighter1, PassiveEvent.ON_DEAL_DAMAGE, dmg);
 
-        player.takeDamage(dmg);
+        fighter1.takeDamage(dmg);
         String log = (result.isCrit ? "★ CRIT! " : "")
-                + enemy.getName() + " hits " + player.getName()
+                + fighter2.getName() + " hits " + fighter1.getName()
                 + " for " + dmg + " dmg! ("
-                + player.getCurrentHp() + "/" + player.getMaxHp() + " HP)";
-        for (BattleListener l : listeners) l.onEnemyAttack(log, dmg, result.isCrit, false);
+                + fighter1.getCurrentHp() + "/" + fighter1.getMaxHp() + " HP)";
+        for (BattleListener l : listeners) l.onFighter2Attack(log, dmg, result.isCrit, false);
         checkEnd();
     }
 
     // ── IBattle: passive event dispatch ───────────────────────────────────────
 
-    /**
-     * Fans out the event to all passives on `owner` that subscribe to it.
-     * Returns the (possibly modified) damage after all passives have run.
-     */
     @Override
     public int applyPassiveEvent(Entity owner, Entity target,
                                  PassiveEvent event, int damage) {
-        List<Passive> passives = (owner == player) ? playerPassives : enemyPassives;
+        List<Passive> passives = (owner == fighter1) ? f1Passives : f2Passives;
         PassiveContext ctx = new PassiveContext(owner, target, this, event, damage);
         for (Passive p : passives) {
             if (p.respondsTo().contains(event)) {
@@ -128,48 +117,40 @@ public class Battle implements IBattle {
     // ── Passive lifecycle ─────────────────────────────────────────────────────
 
     private void collectPassives() {
-        playerPassives.clear();
-        enemyPassives.clear();
-
-        if (player instanceof Character c) {
-            playerPassives.addAll(c.getActivePassives());
-        } else {
-            Passive pp = player.getPassive();
-            if (pp != null) playerPassives.add(pp);
-        }
-
-        Passive ep = enemy.getPassive();
-        if (ep != null) enemyPassives.add(ep);
+        f1Passives.clear();
+        f2Passives.clear();
+        f1Passives.addAll(fighter1.getActivePassives());
+        f2Passives.addAll(fighter2.getActivePassives());
     }
 
     private void fireLifecycle(PassiveEvent event) {
-        for (Passive p : playerPassives) {
-            if (event == PassiveEvent.BATTLE_START) p.onBattleStart(player, this);
-            else if (event == PassiveEvent.BATTLE_END) p.onBattleEnd(player, this);
+        for (Passive p : f1Passives) {
+            if (event == PassiveEvent.BATTLE_START) p.onBattleStart(fighter1, this);
+            else if (event == PassiveEvent.BATTLE_END) p.onBattleEnd(fighter1, this);
         }
-        for (Passive p : enemyPassives) {
-            if (event == PassiveEvent.BATTLE_START) p.onBattleStart(enemy, this);
-            else if (event == PassiveEvent.BATTLE_END) p.onBattleEnd(enemy, this);
+        for (Passive p : f2Passives) {
+            if (event == PassiveEvent.BATTLE_START) p.onBattleStart(fighter2, this);
+            else if (event == PassiveEvent.BATTLE_END) p.onBattleEnd(fighter2, this);
         }
     }
 
     private void startTickTimers() {
-        for (Passive p : playerPassives) {
+        for (Passive p : f1Passives) {
             if (p.respondsTo().contains(PassiveEvent.TICK) && p.getIntervalMs() > 0) {
                 javax.swing.Timer t = new javax.swing.Timer(p.getIntervalMs(), e -> {
                     PassiveContext ctx = new PassiveContext(
-                            player, enemy, this, PassiveEvent.TICK, 0);
+                            fighter1, fighter2, this, PassiveEvent.TICK, 0);
                     p.trigger(ctx);
                 });
                 t.start();
                 passiveTimers.add(t);
             }
         }
-        for (Passive p : enemyPassives) {
+        for (Passive p : f2Passives) {
             if (p.respondsTo().contains(PassiveEvent.TICK) && p.getIntervalMs() > 0) {
                 javax.swing.Timer t = new javax.swing.Timer(p.getIntervalMs(), e -> {
                     PassiveContext ctx = new PassiveContext(
-                            enemy, player, this, PassiveEvent.TICK, 0);
+                            fighter2, fighter1, this, PassiveEvent.TICK, 0);
                     p.trigger(ctx);
                 });
                 t.start();
@@ -193,20 +174,22 @@ public class Battle implements IBattle {
     public void checkEndPublic() { checkEnd(); }
 
     private void checkEnd() {
-        if (!enemy.isAlive()) {
-            state = BattleState.PLAYER_WIN;
+        if (!fighter2.isAlive()) {
+            state = BattleState.FIGHTER1_WIN;
             fireLifecycle(PassiveEvent.BATTLE_END);
             stop();
             for (BattleListener l : listeners) l.onBattleEnd(state);
-        } else if (!player.isAlive()) {
-            state = BattleState.ENEMY_WIN;
+        } else if (!fighter1.isAlive()) {
+            state = BattleState.FIGHTER2_WIN;
             fireLifecycle(PassiveEvent.BATTLE_END);
             stop();
             for (BattleListener l : listeners) l.onBattleEnd(state);
         }
     }
 
-    public BattleState getState() { return state; }
-    public Entity getPlayer()     { return player; }
-    public Entity getEnemy()      { return enemy; }
+    public BattleState getState()    { return state; }
+    public Character   getFighter1() { return fighter1; }
+    public Character   getFighter2() { return fighter2; }
+    public Character   getPlayer()   { return fighter1; }
+    public Character   getEnemy()    { return fighter2; }
 }

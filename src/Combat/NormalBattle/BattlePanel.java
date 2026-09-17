@@ -3,6 +3,7 @@ package Combat.NormalBattle;
 import Entities.Entity;
 import Entities.Enemy;
 import Entities.Character;
+import Combat.NormalBattle.Battle;
 
 import javax.swing.*;
 import java.awt.*;
