@@ -276,6 +276,16 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     @Override
+    public void onPassiveMiss(String log, Entity owner, Entity target, String passiveName) {
+        SwingUtilities.invokeLater(() -> {
+            // Popup appears on the target (the one who avoided the hit) —
+            // same convention as showDmgPopup/spawnMissPopup for normal attacks.
+            boolean onPlayer = (owner != battle.getActivePlayer());
+            spawnMissPopup(onPlayer);
+        });
+    }
+
+    @Override
     public void onFighterEnter(boolean isPlayer, Entity fighter, int remaining) {
         SwingUtilities.invokeLater(() -> {
             // Stop attack timers during the transition

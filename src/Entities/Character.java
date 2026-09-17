@@ -13,7 +13,7 @@ public abstract class Character extends Entity {
     public static final int PASSIVE_2_LEVEL = 20;
     public static final int PASSIVE_3_LEVEL = 30;
 
-    public static final double BASE_ACCURACY = 0.85;
+    public static final double BASE_ACCURACY = 0.80;
     public static final int ARTIFACT_SLOT_COUNT = 4;
     protected int level;
 

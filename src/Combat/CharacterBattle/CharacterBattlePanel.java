@@ -252,6 +252,15 @@ public class CharacterBattlePanel extends JPanel implements CharacterBattle.Batt
     }
 
     @Override
+    public void onPassiveMiss(String log, Entity owner, Entity target, String passiveName) {
+        SwingUtilities.invokeLater(() -> {
+            // Popup appears on the target (the one who avoided the hit)
+            boolean onF1 = (owner != battle.getFighter1());
+            spawnMissPopup(onF1);
+        });
+    }
+
+    @Override
     public void onBattleEnd(CharacterBattle.BattleState result) {
         SwingUtilities.invokeLater(() -> {
             if (f1AttackTimer != null) f1AttackTimer.stop();

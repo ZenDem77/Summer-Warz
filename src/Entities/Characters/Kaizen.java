@@ -11,21 +11,21 @@ public class Kaizen extends Character {
     private static final int PASSIVE_1_BASE_DMG_MIN = 5;
     private static final int PASSIVE_1_BASE_DMG_MAX = 15;
     private static final int PASSIVE_1_INTERVAL_MS  = 1000;
-    private final int        PASSIVE_1_EXTRA_DMG    = (int)(getEffectiveAtk() * 0.10);
+    private        final int PASSIVE_1_EXTRA_DMG    = (int)(getEffectiveAtk() * 0.10);
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_2_HEAL_MIN     = 10;
     private static final int PASSIVE_2_HEAL_MAX     = 30;
     private static final int PASSIVE_2_INTERVAL_MS  = 2000;
-    private final int PASSIVE_2_EXTRA_HEAL = (int)(getMaxHp() * 0.05);
+    private final        int PASSIVE_2_EXTRA_HEAL   = (int)(getMaxHp() * 0.05);
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
     private static final int PASSIVE_3_BONUS_DAMAGE  = 50;
     private static final int PASSIVE_3_INTERVAL_MS   = 4000;
-    private final int        PASSIVE_3_EXTRA_DMG     = (int)(getEffectiveAtk() * 0.40);
+    private        final int PASSIVE_3_EXTRA_DMG     = (int)(getEffectiveAtk() * 1.40);
 
     public Kaizen() {
-        super("Kaizen", 340, 16, 4, 500, 0.05, 0.50, 1);
+        super("Kaizen", 340, 16, 4, 500, 0.05, 0.50, 30);
     }
 
     // ── Passive slots ─────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ public class Kaizen extends Character {
                 int dmg = PASSIVE_1_BASE_DMG_MIN + (int)(Math.random() * (PASSIVE_1_BASE_DMG_MAX - PASSIVE_1_BASE_DMG_MIN + 1)) + PASSIVE_1_EXTRA_DMG;
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 DamageResult result = ctx.owner.calculateTrueDamage(dmg);
-                if (result.isMiss) return;
+                if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int actual = Math.min(result.amount, target.getCurrentHp());
                 target.takeDamage(result.amount);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
@@ -88,7 +88,7 @@ public class Kaizen extends Character {
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 DamageResult result = ctx.owner.calculateTrueDamage(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG);
-                if (result.isMiss) return;
+                if (result.isMiss) { ctx.battle.notifyPassiveMiss(ctx.owner, target, getName()); return; }
                 int actual = Math.min(result.amount, target.getCurrentHp());
                 target.takeDamage(result.amount);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(), actual + " True Damage", actual, false);

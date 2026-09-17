@@ -8,7 +8,7 @@ import java.util.Set;
 
 public class ExperimentalSubject extends Enemy {
 
-    private static final double CRIT_RATE      = 0.80;
+    private static final double CRIT_RATE      = 0.90;
     private static final double CRIT_DAMAGE    = 2.00;
     private static final double DAMAGE_REDUCE  = 0.10;
 
