@@ -11,8 +11,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.List;
 
 /**
  * TowerBattlePanel — battle screen for Tower of Suffering floor mode.
@@ -136,7 +136,7 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
     private int     playerFlashTick = 0,    enemyFlashTick = 0;
 
     // ── Floating text ─────────────────────────────────────────────────────────
-    private final java.util.List<FloatingText> floatingTexts = new java.util.ArrayList<>();
+    private final List<FloatingText> floatingTexts = new ArrayList<>();
 
     private static class FloatingText {
         static final int DURATION_MS = 700, RISE_PX = 40;
@@ -731,7 +731,7 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
     // ── Draw: bottom strip ────────────────────────────────────────────────────
 
     private void drawPlayerRoster(Graphics2D g2) {
-        java.util.List<Character> team = battle.getPlayerTeam();
+        List<Character> team = battle.getPlayerTeam();
         int startX = 20, y = H - ICON_SIZE - 16;
         for (int i = 0; i < team.size(); i++) {
             Entity f = team.get(i);
@@ -802,16 +802,34 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
 
     // ── Draw: info overlay ────────────────────────────────────────────────────
 
+    /**
+     * Splits a string into lines that fit within maxWidth pixels using the
+     * given FontMetrics — prevents passive descriptions from overflowing the panel.
+     */
+    private List<String> wrapText(String text, FontMetrics fm, int maxWidth) {
+        List<String> lines = new ArrayList<>();
+        if (text == null || text.isBlank()) return lines;
+        String[] words = text.split(" ");
+        StringBuilder current = new StringBuilder();
+        for (String word : words) {
+            String test = current.isEmpty() ? word : current + " " + word;
+            if (fm.stringWidth(test) <= maxWidth) {
+                current = new StringBuilder(test);
+            } else {
+                if (!current.isEmpty()) lines.add(current.toString());
+                current = new StringBuilder(word);
+            }
+        }
+        if (!current.isEmpty()) lines.add(current.toString());
+        return lines;
+    }
+
     private void drawInfoOverlay(Graphics2D g2) {
-        // Dim backdrop
         g2.setColor(new Color(0, 0, 0, 160));
         g2.fillRect(0, 0, W, H);
 
-        java.util.List<Enemy> enemies = battle.getEnemyTeam();
-        Enemy e = enemies.get(infoEnemyIndex);
-
-        // ── Panel ─────────────────────────────────────────────────────────────
-        int pw = 440, ph = 330;
+        // ── Outer panel — wide enough to show both character and enemy ────────
+        int pw = 880, ph = 370;
         int px = (W - pw) / 2, py = (H - ph) / 2;
 
         g2.setColor(new Color(20, 20, 35, 245));
@@ -821,100 +839,30 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
         g2.drawRoundRect(px, py, pw, ph, 16, 16);
         g2.setStroke(new BasicStroke(1));
 
-        // ── Title ─────────────────────────────────────────────────────────────
-        g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+        // Vertical divider between the two halves
+        int divX = px + pw / 2;
+        g2.setColor(new Color(100, 80, 40, 100));
+        g2.drawLine(divX, py + 10, divX, py + ph - 10);
+
+        // Header divider (below title row)
+        g2.setColor(new Color(100, 80, 40, 140));
+        g2.drawLine(px + 16, py + 32, px + pw - 16, py + 32);
+
+        // ── Titles ────────────────────────────────────────────────────────────
+        g2.setFont(new Font("SansSerif", Font.BOLD, 13));
         FontMetrics fmT = g2.getFontMetrics();
-        String title = "ENEMY INFO";
+        int titleY = py + 22;
+
+        String charTitle = "CHARACTER INFO";
+        g2.setColor(new Color(100, 200, 130));
+        g2.drawString(charTitle, px + (pw / 2 - fmT.stringWidth(charTitle)) / 2, titleY);
+
+        String enemTitle = "ENEMY INFO";
         g2.setColor(new Color(200, 180, 100));
-        g2.drawString(title, px + (pw - fmT.stringWidth(title)) / 2, py + 22);
-        g2.setColor(new Color(100, 80, 40, 140));
-        g2.drawLine(px + 16, py + 30, px + pw - 16, py + 30);
+        g2.drawString(enemTitle, divX + (pw / 2 - fmT.stringWidth(enemTitle)) / 2, titleY);
 
-        // ── Enemy name + status ───────────────────────────────────────────────
-        String nameStr = e.getName() + (e.isAlive() ? "" : "  [DEFEATED]");
-        g2.setFont(new Font("SansSerif", Font.BOLD, 16));
-        FontMetrics fmN = g2.getFontMetrics();
-        g2.setColor(e.isAlive() ? Color.WHITE : new Color(140, 140, 140));
-        g2.drawString(nameStr, px + (pw - fmN.stringWidth(nameStr)) / 2, py + 50);
-
-        // ── Stats (two columns) ───────────────────────────────────────────────
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        FontMetrics fmS = g2.getFontMetrics();
-        int c1 = px + 30, c2 = px + pw / 2 + 10, rowY = py + 70, gap = 22;
-
-        String[][] left  = {
-                { "HP",          e.getCurrentHp() + " / " + e.getMaxHp() },
-                { "ATK",         String.valueOf(e.getAttack()) },
-                { "DEF",         String.valueOf(e.getDefense()) },
-        };
-        String[][] right = {
-                { "ATK Speed",   (e.getAttackSpeed() / 1000.0) + "s" },
-                { "Crit Rate",   (int)(e.getCritRate()   * 100) + "%" },
-                { "Crit Damage", "+" + (int)(e.getCritDamage() * 100) + "%" },
-        };
-
-        for (int i = 0; i < 3; i++) {
-            int y = rowY + i * gap;
-            g2.setColor(new Color(150, 150, 150)); g2.drawString(left[i][0]  + ":", c1, y);
-            g2.setColor(Color.WHITE);               g2.drawString(left[i][1],       c1 + 80, y);
-            g2.setColor(new Color(150, 150, 150)); g2.drawString(right[i][0] + ":", c2, y);
-            g2.setColor(Color.WHITE);               g2.drawString(right[i][1],      c2 + 90, y);
-        }
-
-        // ── Passive section ───────────────────────────────────────────────────
-        int divY = rowY + 3 * gap + 8;
-        g2.setColor(new Color(100, 80, 40, 140));
-        g2.drawLine(px + 16, divY, px + pw - 16, divY);
-
-        Passive passive = e.getPassive();
-        int passY = divY + 18;
-        if (passive != null) {
-            g2.setFont(new Font("SansSerif", Font.BOLD, 12));
-            g2.setColor(new Color(150, 210, 255));
-            g2.drawString("Passive:  " + passive.getName(), c1, passY);
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
-            g2.setColor(new Color(190, 190, 190));
-            g2.drawString(passive.getDescription(), c1, passY + 16);
-        } else {
-            g2.setFont(new Font("SansSerif", Font.ITALIC, 12));
-            g2.setColor(new Color(110, 110, 110));
-            g2.drawString("No passive ability.", c1, passY);
-        }
-
-        // ── Navigation ────────────────────────────────────────────────────────
-        int navY = py + ph - 42;
-        g2.setColor(new Color(80, 60, 30, 120));
-        g2.drawLine(px + 16, navY - 8, px + pw - 16, navY - 8);
-
-        // Counter
-        String counter = (infoEnemyIndex + 1) + " / " + enemies.size();
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        FontMetrics fmC = g2.getFontMetrics();
-        g2.setColor(new Color(170, 170, 170));
-        g2.drawString(counter, px + (pw - fmC.stringWidth(counter)) / 2, navY + 16);
-
-        // Left arrow
-        boolean hasL = infoEnemyIndex > 0;
-        int arrW = 34, arrH = 24, lax = px + 20, lay = navY;
-        infoLeftArea.setBounds(lax, lay, arrW, arrH);
-        g2.setColor(hasL ? (hoverLeft ? new Color(90,130,190) : new Color(50,70,120)) : new Color(35,35,45));
-        g2.fillRoundRect(lax, lay, arrW, arrH, 6, 6);
-        g2.setColor(hasL ? Color.WHITE : new Color(70, 70, 80));
-        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
-        g2.drawString("‹", lax + 10, lay + 17);
-
-        // Right arrow
-        boolean hasR = infoEnemyIndex < enemies.size() - 1;
-        int rax = px + pw - 20 - arrW, ray = navY;
-        infoRightArea.setBounds(rax, ray, arrW, arrH);
-        g2.setColor(hasR ? (hoverRight ? new Color(90,130,190) : new Color(50,70,120)) : new Color(35,35,45));
-        g2.fillRoundRect(rax, ray, arrW, arrH, 6, 6);
-        g2.setColor(hasR ? Color.WHITE : new Color(70, 70, 80));
-        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
-        g2.drawString("›", rax + 10, ray + 17);
-
-        // Resume button
-        int cbW = 88, cbH = 26, cbX = px + pw - cbW - 12, cbY = py + 6;
+        // Resume button (top-right corner of the whole panel)
+        int cbW = 88, cbH = 26, cbX = px + pw - cbW - 12, cbY = py + 4;
         infoCloseArea.setBounds(cbX, cbY, cbW, cbH);
         g2.setColor(hoverClose ? new Color(170,50,50,220) : new Color(90,25,25,200));
         g2.fillRoundRect(cbX, cbY, cbW, cbH, 8, 8);
@@ -926,6 +874,200 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
         FontMetrics fmCl = g2.getFontMetrics();
         g2.setColor(Color.WHITE);
         g2.drawString("Resume", cbX + (cbW - fmCl.stringWidth("Resume")) / 2, cbY + 17);
+
+        // ── Shared layout constants ────────────────────────────────────────────
+        int halfW   = pw / 2;
+        int margin  = 20;
+        int contentMaxW = halfW - margin * 2;   // max text width per half
+        int nameY   = py + 52;
+        int statsY  = py + 74;
+        int statGap = 20;
+        int labelW  = 80;
+        int valOff  = 85;
+
+        // ── LEFT: Active character ─────────────────────────────────────────────
+        {
+            Character c = battle.getActivePlayer();
+            int lx = px + margin;
+
+            // Name
+            g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+            FontMetrics fmN = g2.getFontMetrics();
+            String cName = c.getName() + (!c.isAlive() ? "  [DEFEATED]" : "");
+            String cNameTrunc = cName;
+            while (fmN.stringWidth(cNameTrunc) > contentMaxW && cNameTrunc.length() > 1)
+                cNameTrunc = cNameTrunc.substring(0, cNameTrunc.length() - 1) + "…";
+            g2.setColor(c.isAlive() ? Color.WHITE : new Color(140,140,140));
+            g2.drawString(cNameTrunc, lx, nameY);
+
+            // Stats (two-column within left half)
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            FontMetrics fmS = g2.getFontMetrics();
+            int col2 = lx + halfW / 2 - margin / 2;
+
+            String[][] cLeft = {
+                    { "HP",       c.getCurrentHp() + " / " + c.getMaxHp() },
+                    { "ATK",      String.valueOf(c.getEffectiveAtk()) },
+                    { "DEF",      String.valueOf(c.getDefense()) },
+            };
+            String[][] cRight = {
+                    { "Spd",      (c.getAttackSpeed() / 1000.0) + "s" },
+                    { "CritRate", (int)(c.getCritRate() * 100) + "%" },
+                    { "CritDmg",  "+" + (int)(c.getCritDamage() * 100) + "%" },
+            };
+
+            for (int i = 0; i < 3; i++) {
+                int ry = statsY + i * statGap;
+                g2.setColor(new Color(150, 150, 150)); g2.drawString(cLeft[i][0] + ":", lx, ry);
+                g2.setColor(Color.WHITE);               g2.drawString(cLeft[i][1], lx + valOff, ry);
+                g2.setColor(new Color(150, 150, 150)); g2.drawString(cRight[i][0] + ":", col2, ry);
+                g2.setColor(Color.WHITE);               g2.drawString(cRight[i][1], col2 + valOff, ry);
+            }
+
+            // Passive divider
+            int cDivY = statsY + 3 * statGap + 6;
+            g2.setColor(new Color(100, 80, 40, 120));
+            g2.drawLine(lx, cDivY, divX - margin, cDivY);
+
+            // Character passives
+            Passive[] slots = c.getPassives();
+            int passY = cDivY + 14;
+            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+            FontMetrics fmP = g2.getFontMetrics();
+            boolean anyPassive = false;
+            for (int i = 0; i < slots.length; i++) {
+                if (slots[i] == null) continue;
+                int unlockLevel = switch (i) {
+                    case 0 -> Character.PASSIVE_1_LEVEL;
+                    case 1 -> Character.PASSIVE_2_LEVEL;
+                    default -> Character.PASSIVE_3_LEVEL;
+                };
+                boolean unlocked = c.getLevel() >= unlockLevel;
+                anyPassive = true;
+
+                // Passive name
+                g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+                g2.setColor(unlocked ? new Color(150, 210, 255) : new Color(100, 100, 120));
+                String pLabel = (unlocked ? "" : "[Lv" + unlockLevel + "] ") + slots[i].getName();
+                g2.drawString(pLabel, lx, passY);
+                passY += 14;
+
+                // Description — wrapped to stay within left half
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+                fmP = g2.getFontMetrics();
+                g2.setColor(unlocked ? new Color(190, 190, 190) : new Color(100, 100, 100));
+                for (String line : wrapText(slots[i].getDescription(), fmP, contentMaxW)) {
+                    g2.drawString(line, lx, passY);
+                    passY += 13;
+                }
+                passY += 4;
+            }
+            if (!anyPassive) {
+                g2.setFont(new Font("SansSerif", Font.ITALIC, 11));
+                g2.setColor(new Color(110, 110, 110));
+                g2.drawString("No passives unlocked yet.", lx, passY);
+            }
+        }
+
+        // ── RIGHT: Enemy ──────────────────────────────────────────────────────
+        {
+            List<Enemy> enemies = battle.getEnemyTeam();
+            Enemy e = enemies.get(infoEnemyIndex);
+            int rx = divX + margin;
+            int rightMaxW = halfW - margin * 2 - 8;
+
+            // Name
+            g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+            FontMetrics fmN = g2.getFontMetrics();
+            String eName = e.getName() + (!e.isAlive() ? "  [DEFEATED]" : "");
+            String eNameTrunc = eName;
+            while (fmN.stringWidth(eNameTrunc) > rightMaxW && eNameTrunc.length() > 1)
+                eNameTrunc = eNameTrunc.substring(0, eNameTrunc.length() - 1) + "…";
+            g2.setColor(e.isAlive() ? Color.WHITE : new Color(140,140,140));
+            g2.drawString(eNameTrunc, rx, nameY);
+
+            // Stats
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            int col2 = rx + halfW / 2 - margin / 2;
+
+            String[][] eLeft = {
+                    { "HP",       e.getCurrentHp() + " / " + e.getMaxHp() },
+                    { "ATK",      String.valueOf(e.getAttack()) },
+                    { "DEF",      String.valueOf(e.getDefense()) },
+            };
+            String[][] eRight = {
+                    { "Spd",      (e.getAttackSpeed() / 1000.0) + "s" },
+                    { "CritRate", (int)(e.getCritRate() * 100) + "%" },
+                    { "CritDmg",  "+" + (int)(e.getCritDamage() * 100) + "%" },
+            };
+
+            for (int i = 0; i < 3; i++) {
+                int ry = statsY + i * statGap;
+                g2.setColor(new Color(150, 150, 150)); g2.drawString(eLeft[i][0]  + ":", rx, ry);
+                g2.setColor(Color.WHITE);               g2.drawString(eLeft[i][1],  rx + valOff, ry);
+                g2.setColor(new Color(150, 150, 150)); g2.drawString(eRight[i][0] + ":", col2, ry);
+                g2.setColor(Color.WHITE);               g2.drawString(eRight[i][1], col2 + valOff, ry);
+            }
+
+            // Passive divider
+            int eDivY = statsY + 3 * statGap + 6;
+            g2.setColor(new Color(100, 80, 40, 120));
+            g2.drawLine(rx, eDivY, px + pw - margin, eDivY);
+
+            // Enemy passive
+            Passive ep = e.getPassive();
+            int passY = eDivY + 14;
+            if (ep != null) {
+                g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+                g2.setColor(new Color(255, 180, 100));
+                g2.drawString(ep.getName(), rx, passY);
+                passY += 14;
+
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+                FontMetrics fmP = g2.getFontMetrics();
+                g2.setColor(new Color(190, 190, 190));
+                for (String line : wrapText(ep.getDescription(), fmP, rightMaxW)) {
+                    g2.drawString(line, rx, passY);
+                    passY += 13;
+                }
+            } else {
+                g2.setFont(new Font("SansSerif", Font.ITALIC, 11));
+                g2.setColor(new Color(110, 110, 110));
+                g2.drawString("No passive ability.", rx, passY);
+            }
+
+            // ── Enemy navigation ───────────────────────────────────────────────
+            int navY = py + ph - 42;
+            g2.setColor(new Color(80, 60, 30, 120));
+            g2.drawLine(rx, navY - 8, px + pw - margin, navY - 8);
+
+            // Counter (centred over the right half)
+            String counter = (infoEnemyIndex + 1) + " / " + enemies.size();
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            FontMetrics fmC = g2.getFontMetrics();
+            g2.setColor(new Color(170, 170, 170));
+            g2.drawString(counter, divX + (halfW - fmC.stringWidth(counter)) / 2, navY + 16);
+
+            // Left arrow
+            boolean hasL = infoEnemyIndex > 0;
+            int arrW = 30, arrH = 22, lax = rx, lay = navY;
+            infoLeftArea.setBounds(lax, lay, arrW, arrH);
+            g2.setColor(hasL ? (hoverLeft ? new Color(90,130,190) : new Color(50,70,120)) : new Color(35,35,45));
+            g2.fillRoundRect(lax, lay, arrW, arrH, 6, 6);
+            g2.setColor(hasL ? Color.WHITE : new Color(70,70,80));
+            g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+            g2.drawString("‹", lax + 9, lay + 16);
+
+            // Right arrow
+            boolean hasR = infoEnemyIndex < enemies.size() - 1;
+            int rax = px + pw - margin - arrW, ray = navY;
+            infoRightArea.setBounds(rax, ray, arrW, arrH);
+            g2.setColor(hasR ? (hoverRight ? new Color(90,130,190) : new Color(50,70,120)) : new Color(35,35,45));
+            g2.fillRoundRect(rax, ray, arrW, arrH, 6, 6);
+            g2.setColor(hasR ? Color.WHITE : new Color(70,70,80));
+            g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+            g2.drawString("›", rax + 9, ray + 16);
+        }
     }
 
     // ── Draw: result overlay ──────────────────────────────────────────────────
@@ -938,7 +1080,7 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     private void drawVictoryOverlay(Graphics2D g2) {
-        java.util.List<java.util.Map.Entry<Character, Integer>> ranking = battle.getDamageRanking();
+        List<Map.Entry<Character, Integer>> ranking = battle.getDamageRanking();
         int totalEnemyHp = battle.getTotalEnemyMaxHp();
         int rowH = 26, bw = 560;
         int bh = 80 + ranking.size() * rowH + 20 + 64;

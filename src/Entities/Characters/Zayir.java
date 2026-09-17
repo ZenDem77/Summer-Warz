@@ -24,7 +24,7 @@ public class Zayir extends Character {
     private static final int PASSIVE_3_ATK_BONUS = 50;
 
     public Zayir() {
-        super("Zayir", 250, 50, 3, 4000, 0.05, 0.50, 30);
+        super("Zayir", 150, 30, 3, 4000, 0.05, 0.50, 30);
     }
 
     @Override
@@ -166,10 +166,10 @@ public class Zayir extends Character {
     @Override
     public void levelUp() {
         switch (checkLevel()) {
-            case 1 -> { maxHp += 10;  attack += 2; }
-            case 2 -> { maxHp += 14;  attack += 3; }
+            case 1 -> { maxHp += 10;  attack += 4; }
+            case 2 -> { maxHp += 14;  attack += 4; }
             case 3 -> { maxHp += 18;  attack += 4; }
-            case 4 -> { maxHp += 39; attack += 5; defense += 1; }
+            case 4 -> { maxHp += 54; attack += 5; defense += 1; }
         }
     }
 

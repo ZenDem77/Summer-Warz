@@ -114,7 +114,7 @@ public class Zed extends Character {
             case 1 -> { maxHp += 4;  attack += 1; }
             case 2 -> { maxHp += 8;  attack += 2; }
             case 3 -> { maxHp += 12; attack += 3; }
-            case 4 -> { maxHp += 30; attack += 4; defense += 1; }
+            case 4 -> { maxHp += 36; attack += 5; defense += 1; }
         }
     }
 
