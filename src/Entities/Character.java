@@ -276,4 +276,14 @@ public abstract class Character extends Entity {
     public double   getWeaponSecondaryValue(){ return weaponSecondaryValue; }
     public int      getArtifactFlatAtk()     { return artifactFlatAtk; }
     public double   getArtifactAtkPercent()  { return artifactAtkPercent; }
+
+    // ── Display ───────────────────────────────────────────────────────────────
+    public String getSummary() {
+        String base = name + "\nLevel: " + level + "\nHp: " + getMaxHp() + "\nAtk: " + getEffectiveAtk() +
+                "\nDef: " + getDefense() + "\nCrit Rate: " + (getCritRate() * 100) + "%" +
+                "\nCrit Damage: " + (getCritDamage() * 100) + "%" +
+                "\nDamage Bonus: " + (getDamageBonus() * 100) + "%" +
+                "\nAccuracy: " + (getAccuracy() * 100) + "%";
+        return base;
+    }
 }

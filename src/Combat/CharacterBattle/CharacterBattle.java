@@ -13,6 +13,18 @@ public class CharacterBattle implements IBattle {
 
     public enum BattleState { IDLE, APPROACHING, ONGOING, FIGHTER1_WIN, FIGHTER2_WIN }
 
+    // ── Damage reduction ──────────────────────────────────────────────────────
+    // CharacterBattle is used exclusively for character-vs-character modes
+    // (Spar). Since both sides are full player characters with passives,
+    // weapons, and artifacts, raw damage numbers would be far too lethal —
+    // so ALL damage (direct attacks AND true-damage passives) is reduced
+    // by this percentage. To customize: just change this one number.
+    public static final double DAMAGE_REDUCTION  = 0.80;   // 80% reduction
+    public static final double DAMAGE_MULTIPLIER = 1.0 - DAMAGE_REDUCTION;
+
+    @Override
+    public double getDamageMultiplier() { return DAMAGE_MULTIPLIER; }
+
     public interface BattleListener {
         void onFighter1Attack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onFighter2Attack(String logEntry, int damage, boolean isCrit, boolean isMiss);
@@ -67,7 +79,8 @@ public class CharacterBattle implements IBattle {
             for (BattleListener l : listeners) l.onFighter1Attack(log, 0, false, true);
             return;
         }
-        int dmg = applyPassiveEvent(fighter2, fighter1, PassiveEvent.ON_TAKE_DAMAGE, result.amount, result.isCrit);
+        int scaled = Math.max(1, (int)(result.amount * getDamageMultiplier()));
+        int dmg = applyPassiveEvent(fighter2, fighter1, PassiveEvent.ON_TAKE_DAMAGE, scaled, result.isCrit);
         applyPassiveEvent(fighter1, fighter2, PassiveEvent.ON_DEAL_DAMAGE, dmg, result.isCrit);
 
         fighter2.takeDamage(dmg);
@@ -87,7 +100,8 @@ public class CharacterBattle implements IBattle {
             for (BattleListener l : listeners) l.onFighter2Attack(log, 0, false, true);
             return;
         }
-        int dmg = applyPassiveEvent(fighter1, fighter2, PassiveEvent.ON_TAKE_DAMAGE, result.amount, result.isCrit);
+        int scaled = Math.max(1, (int)(result.amount * getDamageMultiplier()));
+        int dmg = applyPassiveEvent(fighter1, fighter2, PassiveEvent.ON_TAKE_DAMAGE, scaled, result.isCrit);
         applyPassiveEvent(fighter2, fighter1, PassiveEvent.ON_DEAL_DAMAGE, dmg, result.isCrit);
 
         fighter1.takeDamage(dmg);

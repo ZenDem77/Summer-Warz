@@ -26,4 +26,6 @@ public interface IBattle {
     void notifyShield(Entity owner, String passiveName, int amount);
 
     void notifyPassiveMiss(Entity owner, Entity target, String passiveName);
+
+    default double getDamageMultiplier() { return 1.0; }
 }
