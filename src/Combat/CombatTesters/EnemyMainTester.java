@@ -7,9 +7,9 @@ import Entities.Bosses.*;
 import Entities.Character;
 import Entities.Characters.*;
 import Entities.Enemy;
-import Entities.Weapons.IronEdge;
+import Entities.Weapons.Saber;
 import Entities.Weapons.Weapon;
-import Entities.Weapons.WolvesGravestone;
+import Entities.Weapons.Sword;
 import GameMain.GamePanel;
 
 import javax.swing.*;
@@ -30,10 +30,10 @@ public class EnemyMainTester {
             Zenzenkoi zenzenkoi = new Zenzenkoi();
             List<Character> team = List.of(zenzenkoi, kindle, zayir, xyniz);
 
-            Weapon weaponZe = new IronEdge();
-            Weapon weaponZ = new IronEdge();
-            Weapon weaponK = new IronEdge();
-            Weapon weapon  = new WolvesGravestone();
+            Weapon weaponZe = new Saber();
+            Weapon weaponZ = new Saber();
+            Weapon weaponK = new Saber();
+            Weapon weapon  = new Sword();
 
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
             weaponZ.equip(kindle); weaponZ.setWeaponLevel(20);
