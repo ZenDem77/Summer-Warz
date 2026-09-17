@@ -28,7 +28,7 @@ public class EnemyMainTester {
             Xyniz xyniz = new Xyniz();
             Zayir zayir = new Zayir();
             Zenzenkoi zenzenkoi = new Zenzenkoi();
-            List<Character> team = List.of(kindle, zenzenkoi, zayir, xyniz);
+            List<Character> team = List.of(zenzenkoi, kindle, zayir, xyniz);
 
             Weapon weaponZe = new IronEdge();
             Weapon weaponZ = new IronEdge();
@@ -79,6 +79,7 @@ public class EnemyMainTester {
                 @Override public void onEnemyAttack (String log, int dmg, boolean crit, boolean miss) {}
                 @Override public void onPassive(String log, Entities.Entity owner, int amt, boolean heal) {}
                 @Override public void onPassiveMiss(String log, Entities.Entity owner, Entities.Entity target, String name) {}
+                @Override public void onSpecialHit(String log, Entities.Entity owner, Entities.Entity target, int amount, boolean isCrit) {}
                 @Override public void onFighterEnter(boolean isPlayer, Entities.Entity fighter, int remaining) {}
             });
 

@@ -29,7 +29,10 @@ public class CharacterBattle implements IBattle {
         void onFighter1Attack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onFighter2Attack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onPassive(String logEntry, Entity owner, int amount, boolean isHeal);
+        /** Fired when a passive's true-damage attack misses (accuracy roll failed). */
         void onPassiveMiss(String logEntry, Entity owner, Entity target, String passiveName);
+        /** Fired when a passive deals a special hit (e.g. Zenzenkoi's Last Stand Strike). */
+        void onSpecialHit(String logEntry, Entity owner, Entity target, int amount, boolean isCrit);
         void onBattleEnd(BattleState result);
     }
 
@@ -188,6 +191,16 @@ public class CharacterBattle implements IBattle {
     public void notifyPassiveMiss(Entity owner, Entity target, String passiveName) {
         String log = "[" + passiveName + "] " + owner.getName() + "'s attack missed " + target.getName() + "!";
         for (BattleListener l : listeners) l.onPassiveMiss(log, owner, target, passiveName);
+    }
+
+    @Override
+    public void notifySpecialHit(Entity owner, Entity target, String passiveName,
+                                 String effectDesc, int amount, boolean isCrit) {
+        String log = "[" + passiveName + "] " + (isCrit ? "★ CRIT! " : "")
+                + owner.getName() + " — " + effectDesc
+                + " (" + target.getName() + ": "
+                + target.getCurrentHp() + "/" + target.getMaxHp() + " HP)";
+        for (BattleListener l : listeners) l.onSpecialHit(log, owner, target, amount, isCrit);
     }
 
     @Override

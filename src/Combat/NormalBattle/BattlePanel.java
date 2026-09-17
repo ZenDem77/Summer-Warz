@@ -392,6 +392,23 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
     }
 
     @Override
+    public void onSpecialHit(String log, Entity owner, Entity target, int amount, boolean isCrit) {
+        SwingUtilities.invokeLater(() -> {
+            boolean targetIsPlayer = (target == battle.getActivePlayer());
+            if (targetIsPlayer) { playerFlashing = true; playerFlashTick = 0; }
+            else                { enemyFlashing  = true; enemyFlashTick  = 0; }
+
+            Entity displayTarget = targetIsPlayer ? getDisplayedPlayer() : getDisplayedEnemy();
+            int sw = spriteWidthFor(displayTarget);
+            int sh = spriteHeightFor(displayTarget);
+            double worldX = targetIsPlayer ? playerWorldX : enemyWorldX;
+            double worldY = targetIsPlayer ? PLAYER_WORLD_Y : ENEMY_WORLD_Y;
+            Point sp = spritePos(worldX, worldY, sw, sh);
+            BattleUI.spawnSpecialHitPopup(floatingTexts, sp.x, sp.y, sw, amount, isCrit, TICK_MS);
+        });
+    }
+
+    @Override
     public void onFighterEnter(boolean isPlayer, Entity fighter, int remaining) {
         // Set synchronously BEFORE invokeLater so the very next render tick
         // that fires (before the lambda even runs) already sees waitingForNextFighter=true
