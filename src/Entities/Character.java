@@ -13,6 +13,16 @@ public abstract class Character extends Entity {
     public static final int PASSIVE_2_LEVEL = 20;
     public static final int PASSIVE_3_LEVEL = 30;
 
+    // ── Level thresholds for artifact slots ──────────────────────────────────
+    public static final int ARTIFACT_SLOT_1_LEVEL = 1;
+    public static final int ARTIFACT_SLOT_2_LEVEL = 10;
+    public static final int ARTIFACT_SLOT_3_LEVEL = 20;
+    public static final int ARTIFACT_SLOT_4_LEVEL = 30;
+
+    private static final int[] ARTIFACT_SLOT_UNLOCK_LEVELS = {
+            ARTIFACT_SLOT_1_LEVEL, ARTIFACT_SLOT_2_LEVEL, ARTIFACT_SLOT_3_LEVEL, ARTIFACT_SLOT_4_LEVEL
+    };
+
     public static final double BASE_ACCURACY = 0.80;
     public static final int ARTIFACT_SLOT_COUNT = 4;
     protected int level;
@@ -111,6 +121,10 @@ public abstract class Character extends Entity {
         validateSlot(slot);
         if (artifact == null)
             throw new IllegalArgumentException("Use unequipArtifact() to clear a slot, not equipArtifact(null).");
+        if (!isSlotUnlocked(slot))
+            throw new IllegalStateException(
+                    name + " must be level " + getSlotUnlockLevel(slot)
+                            + " to use artifact slot " + (slot + 1) + " (currently level " + level + ").");
         artifactSlots[slot] = artifact;
         currentHp = Math.min(currentHp, getMaxHp());
     }
@@ -128,6 +142,16 @@ public abstract class Character extends Entity {
 
     public Artifact[] getArtifactSlots() {
         return artifactSlots.clone();
+    }
+
+    public boolean isSlotUnlocked(int slot) {
+        validateSlot(slot);
+        return level >= ARTIFACT_SLOT_UNLOCK_LEVELS[slot];
+    }
+
+    public static int getSlotUnlockLevel(int slot) {
+        validateSlot(slot);
+        return ARTIFACT_SLOT_UNLOCK_LEVELS[slot];
     }
 
     private static void validateSlot(int slot) {
@@ -252,14 +276,4 @@ public abstract class Character extends Entity {
     public double   getWeaponSecondaryValue(){ return weaponSecondaryValue; }
     public int      getArtifactFlatAtk()     { return artifactFlatAtk; }
     public double   getArtifactAtkPercent()  { return artifactAtkPercent; }
-
-    // ── Display ───────────────────────────────────────────────────────────────
-    public String getSummary() {
-        String base = name + "\nLevel: " + level + "\nHp: " + getMaxHp() + "\nAtk: " + getEffectiveAtk() +
-                      "\nDef: " + getDefense() + "\nCrit Rate: " + (getCritRate() * 100) + "%" +
-                      "\nCrit Damage: " + (getCritDamage() * 100) + "%" +
-                      "\nDamage Bonus: " + (getDamageBonus() * 100) + "%" +
-                      "\nAccuracy: " + (getAccuracy() * 100) + "%";
-        return base;
-    }
 }

@@ -165,12 +165,30 @@ public class BattlePanel extends JPanel implements Battle.BattleListener {
         tickIntro();
         if (approaching) tickApproach();
         if (!approaching && combatStarted && !waitingForNextFighter) bobTick++;
+        if (!approaching && combatStarted && !waitingForNextFighter) syncAttackTimers();
 
         if (playerFlashing && ++playerFlashTick > HIT_FLASH_MS / TICK_MS) { playerFlashing = false; playerFlashTick = 0; }
         if (enemyFlashing  && ++enemyFlashTick > HIT_FLASH_MS / TICK_MS)  { enemyFlashing  = false; enemyFlashTick  = 0; }
 
         floatingTexts.removeIf(ft -> !ft.tick());
         repaint();
+    }
+
+    /**
+     * Keeps the running attack Timers in sync with each fighter's CURRENT
+     * attack speed. Needed for passives like Lynx's "shield break → faster
+     * attacks" which call Entity.setAttackSpeed() mid-battle — the Timer
+     * that was created with the OLD speed otherwise never finds out.
+     */
+    private void syncAttackTimers() {
+        if (playerAttackTimer != null) {
+            int currentSpeed = battle.getActivePlayer().getAttackSpeed();
+            if (playerAttackTimer.getDelay() != currentSpeed) playerAttackTimer.setDelay(currentSpeed);
+        }
+        if (enemyAttackTimer != null) {
+            int currentSpeed = battle.getActiveEnemy().getAttackSpeed();
+            if (enemyAttackTimer.getDelay() != currentSpeed) enemyAttackTimer.setDelay(currentSpeed);
+        }
     }
 
     // ── Intro ─────────────────────────────────────────────────────────────────
