@@ -263,13 +263,13 @@ public class FloorMode {
         f.add(new Floor(29, () -> List.of(new UnknownSubject(7), new IndestructibleSubject(7), new ExperimentalSubject(7))));
 
         // ── Floor 30 — ★ BOSS ────────────────────────────────────────────────
-        f.add(new Floor(30, () -> List.of( /* TODO: add boss enemies for floor 30 */ )));
+        f.add(new Floor(30, () -> List.of(new Stain())));
 
         // ── Floors 31–34 ──────────────────────────────────────────────────────
-        f.add(new Floor(31, () -> List.of( /* TODO: add enemies for floor 31 */ )));
-        f.add(new Floor(32, () -> List.of( /* TODO: add enemies for floor 32 */ )));
-        f.add(new Floor(33, () -> List.of( /* TODO: add enemies for floor 33 */ )));
-        f.add(new Floor(34, () -> List.of( /* TODO: add enemies for floor 34 */ )));
+        f.add(new Floor(31, () -> List.of(new ExperimentalSubject(8))));
+        f.add(new Floor(32, () -> List.of(new IndestructibleSubject(8))));
+        f.add(new Floor(33, () -> List.of(new UnknownSubject(8))));
+        f.add(new Floor(34, () -> List.of(new UnknownSubject(8), new IndestructibleSubject(8), new ExperimentalSubject(8))));
 
         // ── Floor 35 — ★ BOSS ────────────────────────────────────────────────
         f.add(new Floor(35, () -> List.of( /* TODO: add boss enemies for floor 35 */ )));

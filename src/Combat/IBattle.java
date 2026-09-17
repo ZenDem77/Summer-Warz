@@ -32,6 +32,21 @@ public interface IBattle {
 
     void notifyImmune(Entity owner, Entity target, String passiveName);
 
+    default int applyTrueDamageRaw(Entity owner, Entity target, int scaledAmount, String passiveName) {
+        if (target.isTrueDamageImmune()) {
+            notifyImmune(owner, target, passiveName);
+            return -1;
+        }
+        double reduction   = target.getTrueDamageReduction();
+        int    finalAmount = reduction > 0
+                ? Math.max(1, (int)(scaledAmount * (1.0 - reduction)))
+                : scaledAmount;
+        int actual = Math.min(finalAmount, target.getCurrentHp());
+        target.takeDamage(finalAmount);
+        target.onTrueDamageReceived(owner, finalAmount, this);
+        return actual;
+    }
+
     default double getDamageMultiplier() { return 1.0; }
 
     default void registerPausableTimer(javax.swing.Timer timer) {}

@@ -1,6 +1,7 @@
 package Entities;
 
 import Combat.DamageResult;
+import Combat.IBattle;
 import Entities.PassiveHandler.*;
 import Entities.Sprites.*;
 
@@ -72,7 +73,10 @@ public abstract class Entity {
 
     // ── Sprite hook ───────────────────────────────────────────────────────────
     public SpriteSet getSpriteSet() { return SpriteSet.NONE; }
+
     public boolean isTrueDamageImmune() { return false; }
+    public double getTrueDamageReduction() { return 0.0; }
+    public void onTrueDamageReceived(Entity attacker, int amount, IBattle battle) { /* no-op */ }
     public double getSizeScale() { return 1.0; }
 
     // ── Effective ATK ─────────────────────────────────────────────────────────
