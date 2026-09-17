@@ -25,6 +25,11 @@ public abstract class Weapon {
     // ── Current upgrade state ─────────────────────────────────────────────────
     private int weaponLevel = 0;   // +0 to +20
 
+    public void setWeaponLevel(int level) {
+        this.weaponLevel = Math.max(0, Math.min(MAX_LEVEL, level));
+        refreshEquippedStats();
+    }
+
     private Character equippedOn = null;
 
     // ── Constructors ──────────────────────────────────────────────────────────

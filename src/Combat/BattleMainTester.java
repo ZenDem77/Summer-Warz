@@ -37,7 +37,13 @@ public class BattleMainTester {
             GamePanel window = new GamePanel();
 
             // ── Build player team ─────────────────────────────────────────────
-            List<Entities.Character> team = List.of(new Zed(), new Kaizen());
+            Zed zed = new Zed();
+            Kaizen kaizen = new Kaizen();
+            Weapon weaponZ = new IronEdge();
+            Weapon weaponK = new IronEdge();
+            List<Entities.Character> team = List.of(zed, kaizen);
+            weaponZ.equip(zed); weaponZ.setWeaponLevel(10);
+            weaponK.equip(kaizen); weaponK.setWeaponLevel(10);
 
             // ── Create FloorMode ──────────────────────────────────────────────
             FloorMode mode = new FloorMode(team);
