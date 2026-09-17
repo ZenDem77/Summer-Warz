@@ -1,12 +1,8 @@
 package Combat;
 
 import Entities.Entity;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import java.util.ArrayList;
-import java.util.List;
+import Entities.Character;
+import Entities.Enemy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +14,7 @@ public class Battle {
     public interface BattleListener {
         void onPlayerAttack(String logEntry, int damage, boolean isCrit);
         void onEnemyAttack(String logEntry, int damage, boolean isCrit);
-        void onPassive(String logEntry, boolean isHeal);
+        void onPassive(String logEntry, Entity owner, int amount, boolean isHeal);
         void onBattleEnd(BattleState result);
     }
 
@@ -29,7 +25,7 @@ public class Battle {
     private final List<BattleListener> listeners = new ArrayList<>();
 
     // Passive timers (managed here so Battle owns the lifecycle)
-    private javax.swing.Timer playerPassiveTimer;
+    private final List<javax.swing.Timer> playerPassiveTimers = new ArrayList<>();
     private javax.swing.Timer enemyPassiveTimer;
 
     public Battle(Entity player, Entity enemy) {
@@ -52,8 +48,8 @@ public class Battle {
     }
 
     public void stop() {
-        if (playerPassiveTimer != null) playerPassiveTimer.stop();
-        if (enemyPassiveTimer  != null) enemyPassiveTimer.stop();
+        playerPassiveTimers.forEach(javax.swing.Timer::stop);
+        if (enemyPassiveTimer != null) enemyPassiveTimer.stop();
     }
 
     // ── Attack ticks ──────────────────────────────────────────────────────────
@@ -85,13 +81,26 @@ public class Battle {
     // ── Passive support ───────────────────────────────────────────────────────
 
     private void startPassiveTimers() {
-        Passive pp = player.getPassive();
-        if (pp != null) {
-            playerPassiveTimer = new javax.swing.Timer(pp.getIntervalMs(),
-                    e -> pp.trigger(player, this));
-            playerPassiveTimer.start();
+        // Characters have up to 3 level-gated passive slots
+        if (player instanceof Character c) {
+            for (Passive pp : c.getActivePassives()) {
+                javax.swing.Timer t = new javax.swing.Timer(pp.getIntervalMs(),
+                        e -> pp.trigger(player, this));
+                t.start();
+                playerPassiveTimers.add(t);
+            }
+        } else {
+            // Fallback: plain Entity passive (e.g. enemy used as player)
+            Passive pp = player.getPassive();
+            if (pp != null) {
+                javax.swing.Timer t = new javax.swing.Timer(pp.getIntervalMs(),
+                        e -> pp.trigger(player, this));
+                t.start();
+                playerPassiveTimers.add(t);
+            }
         }
 
+        // Enemies use a single passive
         Passive ep = enemy.getPassive();
         if (ep != null) {
             enemyPassiveTimer = new javax.swing.Timer(ep.getIntervalMs(),
@@ -102,11 +111,11 @@ public class Battle {
 
     /** Called by Passive implementations to broadcast a passive event. */
     public void notifyPassive(Entity owner, Entity target, String passiveName,
-                              String effectDesc, boolean isHeal) {
+                              String effectDesc, int amount, boolean isHeal) {
         String log = "[" + passiveName + "] " + owner.getName() + " — " + effectDesc
                 + " (" + target.getName() + ": "
                 + target.getCurrentHp() + "/" + target.getMaxHp() + " HP)";
-        for (BattleListener l : listeners) l.onPassive(log, isHeal);
+        for (BattleListener l : listeners) l.onPassive(log, owner, amount, isHeal);
     }
 
     /** Exposed so Passive implementations can trigger win-check after dealing damage. */
