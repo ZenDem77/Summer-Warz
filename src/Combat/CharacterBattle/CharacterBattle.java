@@ -4,10 +4,7 @@ import Combat.DamageResult;
 import Combat.IBattle;
 import Entities.Character;
 import Entities.Entity;
-import Entities.PassiveHandler.Passive;
-import Entities.PassiveHandler.PassiveContext;
-import Entities.PassiveHandler.PassiveEvent;
-import Entities.PassiveHandler.Shielded;
+import Entities.PassiveHandler.*;
 
 import java.util.ArrayList;
 import java.util.List;

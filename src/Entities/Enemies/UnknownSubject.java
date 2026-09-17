@@ -2,8 +2,7 @@ package Entities.Enemies;
 
 import Entities.Enemy;
 import Entities.Entity;
-import Entities.PassiveHandler.Passive;
-import Entities.PassiveHandler.PassiveContext;
+import Entities.PassiveHandler.*;
 
 public class UnknownSubject extends Enemy {
 
