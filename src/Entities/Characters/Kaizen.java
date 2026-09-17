@@ -47,9 +47,10 @@ public class Kaizen extends Character {
             public void trigger(PassiveContext ctx) {
                 int dmg = PASSIVE_1_DMG_MIN + (int)(Math.random() * (PASSIVE_1_DMG_MAX - PASSIVE_1_DMG_MIN + 1));
                 Entity target = ctx.battle.getOpponent(ctx.owner);
+                int actual = Math.min(dmg, target.getCurrentHp());
                 target.takeDamage(dmg);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        dmg + " random bonus dmg (bypasses DEF)", dmg, false);
+                        actual + " random bonus dmg (bypasses DEF)", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
@@ -82,10 +83,11 @@ public class Kaizen extends Character {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
+                int actual = Math.min(PASSIVE_3_BONUS_DAMAGE, target.getCurrentHp());
                 target.takeDamage(PASSIVE_3_BONUS_DAMAGE);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        PASSIVE_3_BONUS_DAMAGE + " flat bonus dmg (bypasses DEF)",
-                        PASSIVE_3_BONUS_DAMAGE, false);
+                        actual + " flat bonus dmg (bypasses DEF)",
+                        actual, false);
                 ctx.battle.checkEndPublic();
             }
         };

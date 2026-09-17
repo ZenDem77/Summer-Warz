@@ -13,8 +13,7 @@ public abstract class Character extends Entity {
     public static final double BASE_ACCURACY = 0.90;
     protected int level;
 
-    public Character(String name, int maxHp, int attack, int defense,
-                     int attackSpeed, double critRate, double critDamage, int level) {
+    public Character(String name, int maxHp, int attack, int defense, int attackSpeed, double critRate, double critDamage, int level) {
         super(name, maxHp, attack, defense, attackSpeed, critRate, critDamage, BASE_ACCURACY);
         this.level = level;
     }

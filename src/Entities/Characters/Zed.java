@@ -45,10 +45,11 @@ public class Zed extends Character {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
+                int actual = Math.min(PASSIVE_1_BONUS_DAMAGE, target.getCurrentHp());
                 target.takeDamage(PASSIVE_1_BONUS_DAMAGE);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        PASSIVE_1_BONUS_DAMAGE + " bonus dmg (bypasses DEF)",
-                        PASSIVE_1_BONUS_DAMAGE, false);
+                        actual + " bonus dmg (bypasses DEF)",
+                        actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
@@ -63,10 +64,11 @@ public class Zed extends Character {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
+                int actual = Math.min(PASSIVE_2_BONUS_DAMAGE, target.getCurrentHp());
                 target.takeDamage(PASSIVE_2_BONUS_DAMAGE);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        PASSIVE_2_BONUS_DAMAGE + " bonus dmg (bypasses DEF)",
-                        PASSIVE_2_BONUS_DAMAGE, false);
+                        actual + " bonus dmg (bypasses DEF)",
+                        actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
@@ -81,10 +83,11 @@ public class Zed extends Character {
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
+                int actual = Math.min(PASSIVE_3_BONUS_DAMAGE, target.getCurrentHp());
                 target.takeDamage(PASSIVE_3_BONUS_DAMAGE);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        PASSIVE_3_BONUS_DAMAGE + " bonus dmg (bypasses DEF)",
-                        PASSIVE_3_BONUS_DAMAGE, false);
+                        actual + " bonus dmg (bypasses DEF)",
+                        actual, false);
                 ctx.battle.checkEndPublic();
                 if (ctx.owner.isAlive()) {
                     int before = ctx.owner.getCurrentHp();
