@@ -30,12 +30,13 @@ public class TowerMainTester {
 
             // ── Weapons ───────────────────────────────────────────────────────
             Weapon staff = new Staff();
+            Weapon shield = new Shield();
             Weapon weaponZe = new Sword();
             Weapon weaponZ = new Saber();
             Weapon weaponK = new Saber();
             Weapon weapon  = new Sword();
 
-            staff.equip(kouzen); staff.setWeaponLevel(20);
+            shield.equip(kouzen); shield.setWeaponLevel(20);
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
             weaponZ.equip(kindle); weaponZ.setWeaponLevel(10);
             weaponK.equip(xyniz); weaponK.setWeaponLevel(10);
