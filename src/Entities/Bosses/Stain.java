@@ -12,8 +12,8 @@ import java.util.EnumSet;
 
 public class Stain extends Enemy {
 
-    private static final double TRUE_DMG_REDUCTION   = 0.50;
-    private static final int    RETALIATION_DAMAGE   = 10;
+    private static final double TRUE_DMG_REDUCTION   = 0.90;
+    private static final int    RETALIATION_DAMAGE   = 40;
 
     public Stain() {
         super("Stain", 12500, 34, 10, 500, 0.95, 2.25);
