@@ -19,7 +19,7 @@ import Entities.Weapons.Weapon;
  */
 public class LevelingService {
 
-    public enum LevelUpResult { SUCCESS, INSUFFICIENT_ELIXIR, MAX_LEVEL_REACHED }
+    public enum LevelUpResult { SUCCESS, INSUFFICIENT_ELIXIR, MAX_LEVEL_REACHED, ASCENSION_REQUIRED }
 
     /**
      * Attempts to level up a character by exactly one level.
@@ -27,11 +27,16 @@ public class LevelingService {
      *
      * @return SUCCESS if the character leveled up and Elixir was charged,
      *         INSUFFICIENT_ELIXIR if the wallet didn't have enough
-     *         (nothing is charged and the character does not level up)
+     *         (nothing is charged and the character does not level up),
+     *         MAX_LEVEL_REACHED if the character is already at absolute max level (60),
+     *         ASCENSION_REQUIRED if the character is at their current phase cap
+     *         and must ascend before leveling further
      */
     public static LevelUpResult levelUpCharacter(Character character, Wallet wallet) {
+        if (character.getLevel() >= Character.MAX_LEVEL) return LevelUpResult.MAX_LEVEL_REACHED;
+        if (character.isAtPhaseCap())                    return LevelUpResult.ASCENSION_REQUIRED;
         int cost = CharacterLevelCost.getCost(character.getLevel());
-        if (!wallet.spend(Currency.ELIXIR, cost)) return LevelUpResult.INSUFFICIENT_ELIXIR;
+        if (!wallet.spend(Currency.ELIXIR, cost))        return LevelUpResult.INSUFFICIENT_ELIXIR;
         character.gainLevel();
         return LevelUpResult.SUCCESS;
     }
