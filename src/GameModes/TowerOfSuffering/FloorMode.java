@@ -299,7 +299,7 @@ public class FloorMode {
         f.add(new Floor(49, () -> List.of(new UnknownSubject(10), new IndestructibleSubject(10),   new ExperimentalSubject(10))));
 
         // ── Floor 50 — ★ BOSS ────────────────────────────────────────────────
-        f.add(new Floor(50, () -> List.of( /* TODO: add boss enemies for floor 50 */ )));
+        f.add(new Floor(50, () -> List.of(new DarkPriest())));
 
         // ── Floors 51–54 ──────────────────────────────────────────────────────
         f.add(new Floor(51, () -> List.of( /* TODO: add enemies for floor 51 */ )));
