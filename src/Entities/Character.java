@@ -24,6 +24,9 @@ public abstract class Character extends Entity {
     private int    artifactFlatAtk    = 0;
     private double artifactAtkPercent = 0.0;
 
+    // ── Passive ATK bonus ─────────────────────────────────────────────────────
+    private int passiveAtkBonus = 0;
+
     // ─────────────────────────────────────────────────────────────────────────
     public Character(String name, int maxHp, int attack, int defense, int attackSpeed, double critRate, double critDamage, int level) {
         super(name, maxHp, attack, defense, attackSpeed, critRate, critDamage, BASE_ACCURACY);
@@ -36,15 +39,20 @@ public abstract class Character extends Entity {
     }
 
     public int getTotalAtk() {
-        int base     = getBaseAtk();
-        int flatBonus = artifactFlatAtk;
+        int    base     = getBaseAtk();
+        int    flatBonus = artifactFlatAtk;
+        double atkPercent = artifactAtkPercent;
 
         // Weapon secondary ATK is a flat bonus, not part of base ATK
         if (weaponSecondaryType == StatType.ATK) {
             flatBonus += (int) weaponSecondaryValue;
         }
+        // Weapon secondary ATK% stacks with artifact ATK%
+        if (weaponSecondaryType == StatType.ATK_PERCENT) {
+            atkPercent += weaponSecondaryValue;
+        }
 
-        return (int)(base * (1.0 + artifactAtkPercent)) + flatBonus;
+        return (int)(base * (1.0 + atkPercent)) + flatBonus + passiveAtkBonus;
     }
 
     @Override
@@ -81,6 +89,13 @@ public abstract class Character extends Entity {
         this.artifactFlatAtk    = 0;
         this.artifactAtkPercent = 0.0;
     }
+
+    // ── Passive ATK bonus (for self-buffing passives) ────────────────────────
+    public void addPassiveAtkBonus(int amount) { passiveAtkBonus += amount; }
+
+    public void removePassiveAtkBonus(int amount) { passiveAtkBonus -= amount; }
+
+    public int getPassiveAtkBonus() { return passiveAtkBonus; }
 
     // ── Generic stat bonus helpers ────────────────────────────────────────────
     public void applyStatBonus(StatType type, double value) {

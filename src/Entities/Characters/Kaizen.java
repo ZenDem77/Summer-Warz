@@ -41,7 +41,7 @@ public class Kaizen extends Character {
     private Passive passive1() {
         return new Passive() {
             @Override public String getName()        { return "Chaos Strike"; }
-            @Override public String getDescription() { return "Deal " + PASSIVE_1_EXTRA_DMG + " + " + PASSIVE_1_BASE_DMG_MIN + "-" + PASSIVE_1_BASE_DMG_MAX + " random bonus dmg every " + msToSec(PASSIVE_1_INTERVAL_MS) + " (bypasses DEF)"; }
+            @Override public String getDescription() { return "Deal " + PASSIVE_1_EXTRA_DMG + " + " + PASSIVE_1_BASE_DMG_MIN + "-" + PASSIVE_1_BASE_DMG_MAX + " random True Damage every " + msToSec(PASSIVE_1_INTERVAL_MS); }
             @Override public int    getIntervalMs()  { return PASSIVE_1_INTERVAL_MS; }
 
             @Override
@@ -51,7 +51,7 @@ public class Kaizen extends Character {
                 int actual = Math.min(dmg, target.getCurrentHp());
                 target.takeDamage(dmg);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " random bonus dmg (bypasses DEF)", actual, false);
+                        actual + " random True Damage", actual, false);
                 ctx.battle.checkEndPublic();
             }
         };
@@ -78,7 +78,7 @@ public class Kaizen extends Character {
     private Passive passive3() {
         return new Passive() {
             @Override public String getName()        { return "Iron Wrath"; }
-            @Override public String getDescription() { return "Deal " + (PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG) + " flat bonus dmg every " + msToSec(PASSIVE_3_INTERVAL_MS) + " (bypasses DEF)"; }
+            @Override public String getDescription() { return "Deal " + (PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG) + " True Damage every " + msToSec(PASSIVE_3_INTERVAL_MS); }
             @Override public int    getIntervalMs()  { return PASSIVE_3_INTERVAL_MS; }
 
             @Override
@@ -87,7 +87,7 @@ public class Kaizen extends Character {
                 int actual = Math.min(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG, target.getCurrentHp());
                 target.takeDamage(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " flat bonus dmg (bypasses DEF)",
+                        actual + " True Damage",
                         actual, false);
                 ctx.battle.checkEndPublic();
             }

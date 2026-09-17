@@ -39,7 +39,7 @@ public class Zed extends Character {
     private Passive passive1() {
         return new Passive() {
             @Override public String getName()        { return "Shadow Surge"; }
-            @Override public String getDescription() { return "Deal " + (PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG) + " bonus dmg every " + msToSec(PASSIVE_1_INTERVAL_MS) + " (bypasses DEF)"; }
+            @Override public String getDescription() { return "Deal " + (PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG) + " True Damage every " + msToSec(PASSIVE_1_INTERVAL_MS); }
             @Override public int    getIntervalMs()  { return PASSIVE_1_INTERVAL_MS; }
 
             @Override
@@ -48,7 +48,7 @@ public class Zed extends Character {
                 int actual = Math.min(PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG, target.getCurrentHp());
                 target.takeDamage(PASSIVE_1_BONUS_DAMAGE + PASSIVE_1_EXTRA_DMG);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " bonus dmg (bypasses DEF)",
+                        actual + " True Damage",
                         actual, false);
                 ctx.battle.checkEndPublic();
             }
@@ -58,7 +58,7 @@ public class Zed extends Character {
     private Passive passive2() {
         return new Passive() {
             @Override public String getName()        { return "Dark Echo"; }
-            @Override public String getDescription() { return "Deal " + (PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG) + " bonus dmg every " + msToSec(PASSIVE_2_INTERVAL_MS) + " (bypasses DEF)"; }
+            @Override public String getDescription() { return "Deal " + (PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG) + " True Damage every " + msToSec(PASSIVE_2_INTERVAL_MS); }
             @Override public int    getIntervalMs()  { return PASSIVE_2_INTERVAL_MS; }
 
             @Override
@@ -67,7 +67,7 @@ public class Zed extends Character {
                 int actual = Math.min(PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG, target.getCurrentHp());
                 target.takeDamage(PASSIVE_2_BONUS_DAMAGE + PASSIVE_2_EXTRA_DMG);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " bonus dmg (bypasses DEF)",
+                        actual + " True Damage",
                         actual, false);
                 ctx.battle.checkEndPublic();
             }
@@ -77,7 +77,7 @@ public class Zed extends Character {
     private Passive passive3() {
         return new Passive() {
             @Override public String getName()        { return "Shadow Mend"; }
-            @Override public String getDescription() { return "Deal " + PASSIVE_3_BONUS_DAMAGE + " bonus dmg and heal " + PASSIVE_3_HEAL_AMOUNT + " HP every " + msToSec(PASSIVE_3_INTERVAL_MS); }
+            @Override public String getDescription() { return "Deal " + PASSIVE_3_BONUS_DAMAGE + " True Damage and heal " + PASSIVE_3_HEAL_AMOUNT + " HP every " + msToSec(PASSIVE_3_INTERVAL_MS); }
             @Override public int    getIntervalMs()  { return PASSIVE_3_INTERVAL_MS; }
 
             @Override
@@ -86,7 +86,7 @@ public class Zed extends Character {
                 int actual = Math.min(PASSIVE_3_BONUS_DAMAGE, target.getCurrentHp());
                 target.takeDamage(PASSIVE_3_BONUS_DAMAGE);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
-                        actual + " bonus dmg (bypasses DEF)",
+                        actual + " True Damage",
                         actual, false);
                 ctx.battle.checkEndPublic();
                 if (ctx.owner.isAlive()) {
