@@ -179,7 +179,16 @@ public class TowerBattlePanel extends JPanel implements Battle.BattleListener {
         setPreferredSize(new Dimension(W, H));
         setLayout(null);
 
-        bgImage = makePlaceholderBg();
+        BufferedImage loadedBg;
+        try {
+            String path = floor.isBoss()
+                    ? "/NormalFloorBg.png"
+                    : "/NormalFloorBg.png";
+            loadedBg = javax.imageio.ImageIO.read(getClass().getResource(path));
+        } catch (Exception e) {
+            loadedBg = makePlaceholderBg();
+        }
+        bgImage = loadedBg;
         battle.getPlayerTeam().forEach(c -> spriteCache.put(c, makePlaceholderSprite(PLAYER_COL, c.getName().substring(0, 1))));
         battle.getEnemyTeam() .forEach(e -> spriteCache.put(e, makePlaceholderSprite(ENEMY_COL,  e.getName().substring(0, 1))));
 

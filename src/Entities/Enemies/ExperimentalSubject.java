@@ -15,7 +15,7 @@ public class ExperimentalSubject extends Enemy {
     private final int tier;
 
     public ExperimentalSubject(int tier) {
-        super("Experimental Subject",
+        super("Experimental Subject " + tier,
                 calcHp(tier),
                 calcAtk(tier),
                 calcDef(tier),

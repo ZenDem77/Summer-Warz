@@ -18,7 +18,7 @@ public class IndestructibleSubject extends Enemy implements Shielded {
     // ── Constructor ───────────────────────────────────────────────────────────
 
     public IndestructibleSubject(int tier) {
-        super("Indestructible Subject",
+        super("Indestructible Subject " + tier,
                 calcHp(tier),
                 calcAtk(tier),
                 calcDef(tier),

@@ -170,9 +170,9 @@ public class FloorMode {
 
         // ── Floors 11–14 ──────────────────────────────────────────────────────
         f.add(new Floor(11, () -> List.of(new IndestructibleSubject(1), new IndestructibleSubject(1))));
-        f.add(new Floor(12, () -> List.of(new IndestructibleSubject(2), new IndestructibleSubject(2))));
-        f.add(new Floor(13, () -> List.of(new UnknownSubject(2), new ExperimentalSubject(2), new IndestructibleSubject(2))));
-        f.add(new Floor(14, () -> List.of(new IndestructibleSubject(2), new UnknownSubject(2), new ExperimentalSubject(2), new  IndestructibleSubject(2))));
+        f.add(new Floor(12, () -> List.of(new IndestructibleSubject(2))));
+        f.add(new Floor(13, () -> List.of(new UnknownSubject(2), new ExperimentalSubject(2))));
+        f.add(new Floor(14, () -> List.of(new IndestructibleSubject(2), new UnknownSubject(2), new ExperimentalSubject(2))));
 
         // ── Floor 15 — ★ BOSS ────────────────────────────────────────────────
         f.add(new Floor(15, () -> List.of( /* TODO: add boss enemies for floor 15 */ )));

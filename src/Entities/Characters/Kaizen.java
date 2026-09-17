@@ -7,18 +7,21 @@ import Entities.PassiveHandler.*;
 public class Kaizen extends Character {
 
     // ── Passive 1 constants ───────────────────────────────────────────────────
-    private static final int PASSIVE_1_DMG_MIN     = 5;
-    private static final int PASSIVE_1_DMG_MAX     = 15;
-    private static final int PASSIVE_1_INTERVAL_MS = 1000;
+    private static final int PASSIVE_1_BASE_DMG_MIN = 5;
+    private static final int PASSIVE_1_BASE_DMG_MAX = 15;
+    private static final int PASSIVE_1_INTERVAL_MS  = 1000;
+    private final int        PASSIVE_1_EXTRA_DMG    = (int)(getEffectiveAtk() * 0.10);
 
     // ── Passive 2 constants ───────────────────────────────────────────────────
-    private static final int PASSIVE_2_HEAL_MIN    = 10;
-    private static final int PASSIVE_2_HEAL_MAX    = 30;
-    private static final int PASSIVE_2_INTERVAL_MS = 2000;
+    private static final int PASSIVE_2_HEAL_MIN     = 10;
+    private static final int PASSIVE_2_HEAL_MAX     = 30;
+    private static final int PASSIVE_2_INTERVAL_MS  = 2000;
+    private final int PASSIVE_2_EXTRA_HEAL = (int)(getMaxHp() * 0.05);
 
     // ── Passive 3 constants ───────────────────────────────────────────────────
-    private static final int PASSIVE_3_BONUS_DAMAGE = 50;
-    private static final int PASSIVE_3_INTERVAL_MS  = 4000;
+    private static final int PASSIVE_3_BONUS_DAMAGE  = 50;
+    private static final int PASSIVE_3_INTERVAL_MS   = 4000;
+    private final int        PASSIVE_3_EXTRA_DMG     = (int)(getEffectiveAtk() * 0.40);
 
     public Kaizen() {
         super("Kaizen", 340, 16, 4, 500, 0.05, 0.50, 1);
@@ -38,12 +41,12 @@ public class Kaizen extends Character {
     private Passive passive1() {
         return new Passive() {
             @Override public String getName()        { return "Chaos Strike"; }
-            @Override public String getDescription() { return "Deal " + PASSIVE_1_DMG_MIN + "–" + PASSIVE_1_DMG_MAX + " random bonus dmg every " + msToSec(PASSIVE_1_INTERVAL_MS) + " (bypasses DEF)"; }
+            @Override public String getDescription() { return "Deal " + PASSIVE_1_EXTRA_DMG + " + " + PASSIVE_1_BASE_DMG_MIN + "-" + PASSIVE_1_BASE_DMG_MAX + " random bonus dmg every " + msToSec(PASSIVE_1_INTERVAL_MS) + " (bypasses DEF)"; }
             @Override public int    getIntervalMs()  { return PASSIVE_1_INTERVAL_MS; }
 
             @Override
             public void trigger(PassiveContext ctx) {
-                int dmg = PASSIVE_1_DMG_MIN + (int)(Math.random() * (PASSIVE_1_DMG_MAX - PASSIVE_1_DMG_MIN + 1));
+                int dmg = PASSIVE_1_BASE_DMG_MIN + (int)(Math.random() * (PASSIVE_1_BASE_DMG_MAX - PASSIVE_1_BASE_DMG_MIN + 1)) + PASSIVE_1_EXTRA_DMG;
                 Entity target = ctx.battle.getOpponent(ctx.owner);
                 int actual = Math.min(dmg, target.getCurrentHp());
                 target.takeDamage(dmg);
@@ -57,12 +60,12 @@ public class Kaizen extends Character {
     private Passive passive2() {
         return new Passive() {
             @Override public String getName()        { return "Iron Recovery"; }
-            @Override public String getDescription() { return "Heal " + PASSIVE_2_HEAL_MIN + "–" + PASSIVE_2_HEAL_MAX + " random HP every " + msToSec(PASSIVE_2_INTERVAL_MS); }
+            @Override public String getDescription() { return "Heal " + PASSIVE_2_EXTRA_HEAL + " + "+ PASSIVE_2_HEAL_MIN + "–" + PASSIVE_2_HEAL_MAX + " random HP every " + msToSec(PASSIVE_2_INTERVAL_MS); }
             @Override public int    getIntervalMs()  { return PASSIVE_2_INTERVAL_MS; }
 
             @Override
             public void trigger(PassiveContext ctx) {
-                int roll = PASSIVE_2_HEAL_MIN + (int)(Math.random() * (PASSIVE_2_HEAL_MAX - PASSIVE_2_HEAL_MIN + 1));
+                int roll = PASSIVE_2_HEAL_MIN + (int)(Math.random() * (PASSIVE_2_HEAL_MAX - PASSIVE_2_HEAL_MIN + 1)) + PASSIVE_2_EXTRA_HEAL;
                 int before = ctx.owner.getCurrentHp();
                 ctx.owner.heal(roll);
                 int healed = ctx.owner.getCurrentHp() - before;
@@ -75,14 +78,14 @@ public class Kaizen extends Character {
     private Passive passive3() {
         return new Passive() {
             @Override public String getName()        { return "Iron Wrath"; }
-            @Override public String getDescription() { return "Deal " + PASSIVE_3_BONUS_DAMAGE + " flat bonus dmg every " + msToSec(PASSIVE_3_INTERVAL_MS) + " (bypasses DEF)"; }
+            @Override public String getDescription() { return "Deal " + (PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG) + " flat bonus dmg every " + msToSec(PASSIVE_3_INTERVAL_MS) + " (bypasses DEF)"; }
             @Override public int    getIntervalMs()  { return PASSIVE_3_INTERVAL_MS; }
 
             @Override
             public void trigger(PassiveContext ctx) {
                 Entity target = ctx.battle.getOpponent(ctx.owner);
-                int actual = Math.min(PASSIVE_3_BONUS_DAMAGE, target.getCurrentHp());
-                target.takeDamage(PASSIVE_3_BONUS_DAMAGE);
+                int actual = Math.min(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG, target.getCurrentHp());
+                target.takeDamage(PASSIVE_3_BONUS_DAMAGE + PASSIVE_3_EXTRA_DMG);
                 ctx.battle.notifyPassive(ctx.owner, target, getName(),
                         actual + " flat bonus dmg (bypasses DEF)",
                         actual, false);
