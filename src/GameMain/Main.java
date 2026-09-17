@@ -1,5 +1,12 @@
 package GameMain;
 
+import javax.swing.*;
+
 public class Main {
-    // Entry point reserved for future use.
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            GamePanel window = new GamePanel();
+            window.showPanel(new TitleScreen());
+        });
+    }
 }

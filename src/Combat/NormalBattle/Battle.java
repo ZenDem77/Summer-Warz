@@ -7,6 +7,7 @@ import Entities.Entity;
 import Entities.Passive;
 import Entities.PassiveContext;
 import Entities.PassiveEvent;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,9 +72,9 @@ public class Battle implements IBattle {
             return;
         }
         // Let enemy's ON_TAKE_DAMAGE passives intercept
-        int dmg = applyPassiveEvent(enemy, player, PassiveEvent.ON_TAKE_DAMAGE, result.amount);
+        int dmg = applyPassiveEvent(enemy, player, PassiveEvent.ON_TAKE_DAMAGE, result.amount, result.isCrit);
         // Let player's ON_DEAL_DAMAGE passives react (lifesteal etc.)
-        applyPassiveEvent(player, enemy, PassiveEvent.ON_DEAL_DAMAGE, dmg);
+        applyPassiveEvent(player, enemy, PassiveEvent.ON_DEAL_DAMAGE, dmg, result.isCrit);
 
         enemy.takeDamage(dmg);
         String log = (result.isCrit ? "★ CRIT! " : "")
@@ -93,9 +94,9 @@ public class Battle implements IBattle {
             return;
         }
         // Let player's ON_TAKE_DAMAGE passives intercept
-        int dmg = applyPassiveEvent(player, enemy, PassiveEvent.ON_TAKE_DAMAGE, result.amount);
+        int dmg = applyPassiveEvent(player, enemy, PassiveEvent.ON_TAKE_DAMAGE, result.amount, result.isCrit);
         // Let enemy's ON_DEAL_DAMAGE passives react
-        applyPassiveEvent(enemy, player, PassiveEvent.ON_DEAL_DAMAGE, dmg);
+        applyPassiveEvent(enemy, player, PassiveEvent.ON_DEAL_DAMAGE, dmg, result.isCrit);
 
         player.takeDamage(dmg);
         String log = (result.isCrit ? "★ CRIT! " : "")
@@ -114,9 +115,9 @@ public class Battle implements IBattle {
      */
     @Override
     public int applyPassiveEvent(Entity owner, Entity target,
-                                 PassiveEvent event, int damage) {
+                                 PassiveEvent event, int damage, boolean isCrit) {
         List<Passive> passives = (owner == player) ? playerPassives : enemyPassives;
-        PassiveContext ctx = new PassiveContext(owner, target, this, event, damage);
+        PassiveContext ctx = new PassiveContext(owner, target, this, event, damage, isCrit);
         for (Passive p : passives) {
             if (p.respondsTo().contains(event)) {
                 p.trigger(ctx);
@@ -158,7 +159,7 @@ public class Battle implements IBattle {
             if (p.respondsTo().contains(PassiveEvent.TICK) && p.getIntervalMs() > 0) {
                 javax.swing.Timer t = new javax.swing.Timer(p.getIntervalMs(), e -> {
                     PassiveContext ctx = new PassiveContext(
-                            player, enemy, this, PassiveEvent.TICK, 0);
+                            player, enemy, this, PassiveEvent.TICK, 0, false);
                     p.trigger(ctx);
                 });
                 t.start();
@@ -169,7 +170,7 @@ public class Battle implements IBattle {
             if (p.respondsTo().contains(PassiveEvent.TICK) && p.getIntervalMs() > 0) {
                 javax.swing.Timer t = new javax.swing.Timer(p.getIntervalMs(), e -> {
                     PassiveContext ctx = new PassiveContext(
-                            enemy, player, this, PassiveEvent.TICK, 0);
+                            enemy, player, this, PassiveEvent.TICK, 0, false);
                     p.trigger(ctx);
                 });
                 t.start();

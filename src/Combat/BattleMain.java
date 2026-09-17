@@ -16,10 +16,10 @@ public class BattleMain {
             GamePanel window = new GamePanel();
 
             // Character vs Enemy test battle
-            //Battle battle  = new Battle(new Kaizen(), new Phainon()); window.showPanel(new BattlePanel(battle));
+            Battle battle  = new Battle(new Zed(), new Hanzo()); window.showPanel(new BattlePanel(battle));
 
             // Character vs Character test battle
-            CharacterBattle battle = new CharacterBattle(new Kaizen(), new Zed()); window.showPanel(new CharacterBattlePanel(battle));
+            //CharacterBattle battle = new CharacterBattle(new Kaizen(), new Zed()); window.showPanel(new CharacterBattlePanel(battle));
         });
     }
 }

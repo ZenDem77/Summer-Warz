@@ -15,7 +15,7 @@ public interface IBattle {
     }
 
     // ── Passive event broadcasting ────────────────────────────────────────────
-    int applyPassiveEvent(Entity owner, Entity target, PassiveEvent event, int damage);
+    int applyPassiveEvent(Entity owner, Entity target, PassiveEvent event, int damage, boolean isCrit);
 
     // ── Notifications ─────────────────────────────────────────────────────────
     void notifyPassive(Entity owner, Entity target, String passiveName,
