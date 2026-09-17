@@ -6,7 +6,6 @@ import Entities.Artifacts.Artifact;
 import Entities.Bosses.*;
 import Entities.Character;
 import Entities.Characters.*;
-import Entities.Enemies.*;
 import Entities.Enemy;
 import Entities.Weapons.IronEdge;
 import Entities.Weapons.Weapon;
@@ -25,11 +24,11 @@ public class EnemyMainTester {
             // ═══════════════════════════════════════════════════════════════════
             //  PLAYER TEAM (1–4 characters, no duplicates)
             // ═══════════════════════════════════════════════════════════════════
-            Zed zed = new Zed();
+            Kindle kindle = new Kindle();
             Kaizen kaizen = new Kaizen();
             Zayir zayir = new Zayir();
             Zenzenkoi zenzenkoi = new Zenzenkoi();
-            List<Character> team = List.of(zenzenkoi, zayir, zed, kaizen);
+            List<Character> team = List.of(kindle, zenzenkoi, zayir, kaizen);
 
             Weapon weaponZe = new IronEdge();
             Weapon weaponZ = new IronEdge();
@@ -37,7 +36,7 @@ public class EnemyMainTester {
             Weapon weapon  = new WolvesGravestone();
 
             weaponZe.equip(zenzenkoi); weaponZe.setWeaponLevel(20);
-            weaponZ.equip(zed); weaponZ.setWeaponLevel(20);
+            weaponZ.equip(kindle); weaponZ.setWeaponLevel(20);
             weaponK.equip(kaizen); weaponK.setWeaponLevel(20);
             weapon.equip(zayir); weapon.setWeaponLevel(20);
 
@@ -56,10 +55,10 @@ public class EnemyMainTester {
             zenzenkoi.equipArtifact(2, a3);
             zenzenkoi.equipArtifact(3, a4);
 
-            zed.equipArtifact(0, b1);
-            zed.equipArtifact(1, b2);
-            zed.equipArtifact(2, b3);
-            zed.equipArtifact(3, b4);
+            kindle.equipArtifact(0, b1);
+            kindle.equipArtifact(1, b2);
+            kindle.equipArtifact(2, b3);
+            kindle.equipArtifact(3, b4);
 
             // ═══════════════════════════════════════════════════════════════════
             //  ENEMY
