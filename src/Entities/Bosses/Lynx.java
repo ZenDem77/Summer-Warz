@@ -92,4 +92,7 @@ public class Lynx extends Enemy implements Shielded {
 
     @Override
     public String toString() { return super.toString(); }
+
+    // In Lynx.java or a future big boss
+    //@Override public double getSizeScale() { return 2.5; }
 }
