@@ -1,7 +1,5 @@
 package Entities;
 
-import Combat.Passive;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,9 +14,12 @@ public abstract class Character extends Entity {
     protected int    karma;
     protected String clan;
 
+    public static final double BASE_ACCURACY = 0.90;
+
     public Character(String name, int maxHp, int attack, int defense,
-                     int attackSpeed, int level, String clan) {
-        super(name, maxHp, attack, defense, attackSpeed);
+                     int attackSpeed, double critRate, double critDamage,
+                     int level, String clan) {
+        super(name, maxHp, attack, defense, attackSpeed, critRate, critDamage, BASE_ACCURACY);
         this.level = level;
         this.karma = 0;
         this.clan  = clan;

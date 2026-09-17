@@ -1,8 +1,9 @@
-package Combat;
+package Combat.NormalBattle;
 
+import Combat.DamageResult;
 import Entities.Entity;
 import Entities.Character;
-import Entities.Enemy;
+import Entities.Passive;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,8 +13,8 @@ public class Battle {
     public enum BattleState { IDLE, APPROACHING, ONGOING, PLAYER_WIN, ENEMY_WIN }
 
     public interface BattleListener {
-        void onPlayerAttack(String logEntry, int damage, boolean isCrit);
-        void onEnemyAttack(String logEntry, int damage, boolean isCrit);
+        void onPlayerAttack(String logEntry, int damage, boolean isCrit, boolean isMiss);
+        void onEnemyAttack(String logEntry, int damage, boolean isCrit, boolean isMiss);
         void onPassive(String logEntry, Entity owner, int amount, boolean isHeal);
         void onBattleEnd(BattleState result);
     }
@@ -57,24 +58,34 @@ public class Battle {
     public void playerTick() {
         if (state != BattleState.ONGOING) return;
         DamageResult result = player.calculateDamage(enemy);
-        enemy.takeDamage(result.amount);
-        String log = (result.isCrit ? "★ CRIT! " : "")
-                + player.getName() + " hits " + enemy.getName()
-                + " for " + result.amount + " dmg! ("
-                + enemy.getCurrentHp() + "/" + enemy.getMaxHp() + " HP)";
-        for (BattleListener l : listeners) l.onPlayerAttack(log, result.amount, result.isCrit);
+        String log;
+        if (result.isMiss) {
+            log = player.getName() + "'s attack missed!";
+        } else {
+            enemy.takeDamage(result.amount);
+            log = (result.isCrit ? "★ CRIT! " : "")
+                    + player.getName() + " hits " + enemy.getName()
+                    + " for " + result.amount + " dmg! ("
+                    + enemy.getCurrentHp() + "/" + enemy.getMaxHp() + " HP)";
+        }
+        for (BattleListener l : listeners) l.onPlayerAttack(log, result.amount, result.isCrit, result.isMiss);
         checkEnd();
     }
 
     public void enemyTick() {
         if (state != BattleState.ONGOING) return;
         DamageResult result = enemy.calculateDamage(player);
-        player.takeDamage(result.amount);
-        String log = (result.isCrit ? "★ CRIT! " : "")
-                + enemy.getName() + " hits " + player.getName()
-                + " for " + result.amount + " dmg! ("
-                + player.getCurrentHp() + "/" + player.getMaxHp() + " HP)";
-        for (BattleListener l : listeners) l.onEnemyAttack(log, result.amount, result.isCrit);
+        String log;
+        if (result.isMiss) {
+            log = enemy.getName() + "'s attack missed!";
+        } else {
+            player.takeDamage(result.amount);
+            log = (result.isCrit ? "★ CRIT! " : "")
+                    + enemy.getName() + " hits " + player.getName()
+                    + " for " + result.amount + " dmg! ("
+                    + player.getCurrentHp() + "/" + player.getMaxHp() + " HP)";
+        }
+        for (BattleListener l : listeners) l.onEnemyAttack(log, result.amount, result.isCrit, result.isMiss);
         checkEnd();
     }
 
